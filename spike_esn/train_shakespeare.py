@@ -113,14 +113,20 @@ def build_one_hot_spike_matrix(
     N_sam = encoder.N_sam
     spike_matrix = np.zeros((T, vocab_size * N_sam), dtype=np.int8)
 
-    for t in range(T):
-        char_idx = int(indices[t])
+    if deterministic:
+        seq_0 = encoder.encode_scalar(0.0, 1.0, 0.0, rng=rng, deterministic=True)
+        seq_1 = encoder.encode_scalar(1.0, 1.0, 0.0, rng=rng, deterministic=True)
         for v in range(vocab_size):
-            channel_val = 1.0 if v == char_idx else 0.0
-            spike_seq = encoder.encode_scalar(
-                channel_val, 1.0, 0.0, rng=rng, deterministic=deterministic
-            )
-            spike_matrix[t, v * N_sam:(v + 1) * N_sam] = spike_seq
+            spike_matrix[:, v * N_sam:(v + 1) * N_sam] = seq_0
+        for t in range(T):
+            char_idx = int(indices[t])
+            spike_matrix[t, char_idx * N_sam:(char_idx + 1) * N_sam] = seq_1
+    else:
+        # Fast vectorized encoding for stochastic mode
+        one_hot = to_one_hot(indices, vocab_size)  # Shape (T, V)
+        flat_u = one_hot.flatten()                 # Shape (T * V,)
+        spikes = encoder.encode_series(flat_u, rng=rng)  # Shape (T * V, N_sam)
+        spike_matrix = spikes.reshape(T, vocab_size * N_sam)
 
     return spike_matrix
 
@@ -193,11 +199,18 @@ def generate_text(model, seed_indices: np.ndarray, n_chars: int,
         if encoding == "one-hot":
             # One-hot channels concatenated into a single spike row
             spike_row = np.zeros(vocab_size * encoder.N_sam, dtype=np.int8)
-            for v in range(vocab_size):
-                channel_val = 1.0 if v == char_idx else 0.0
-                spike_row[v * encoder.N_sam:(v + 1) * encoder.N_sam] = \
-                    encoder.encode_scalar(channel_val, 1.0, 0.0, rng=rng, 
-                                          deterministic=deterministic)
+            if deterministic:
+                seq_0 = encoder.encode_scalar(0.0, 1.0, 0.0, rng=rng, deterministic=True)
+                seq_1 = encoder.encode_scalar(1.0, 1.0, 0.0, rng=rng, deterministic=True)
+                for v in range(vocab_size):
+                    spike_row[v * encoder.N_sam:(v + 1) * encoder.N_sam] = seq_0
+                spike_row[char_idx * encoder.N_sam:(char_idx + 1) * encoder.N_sam] = seq_1
+            else:
+                for v in range(vocab_size):
+                    channel_val = 1.0 if v == char_idx else 0.0
+                    spike_row[v * encoder.N_sam:(v + 1) * encoder.N_sam] = \
+                        encoder.encode_scalar(channel_val, 1.0, 0.0, rng=rng, 
+                                              deterministic=False)
             f_spike = reservoir.compute_spike_current(spike_row)
         else:
             val = normalize(np.array([char_idx], dtype=np.float64), vocab_size)[0]
@@ -212,11 +225,18 @@ def generate_text(model, seed_indices: np.ndarray, n_chars: int,
     for _ in range(n_chars):
         if encoding == "one-hot":
             spike_row = np.zeros(vocab_size * encoder.N_sam, dtype=np.int8)
-            for v in range(vocab_size):
-                channel_val = 1.0 if v == current_idx else 0.0
-                spike_row[v * encoder.N_sam:(v + 1) * encoder.N_sam] = \
-                    encoder.encode_scalar(channel_val, 1.0, 0.0, rng=rng,
-                                          deterministic=deterministic)
+            if deterministic:
+                seq_0 = encoder.encode_scalar(0.0, 1.0, 0.0, rng=rng, deterministic=True)
+                seq_1 = encoder.encode_scalar(1.0, 1.0, 0.0, rng=rng, deterministic=True)
+                for v in range(vocab_size):
+                    spike_row[v * encoder.N_sam:(v + 1) * encoder.N_sam] = seq_0
+                spike_row[current_idx * encoder.N_sam:(current_idx + 1) * encoder.N_sam] = seq_1
+            else:
+                for v in range(vocab_size):
+                    channel_val = 1.0 if v == current_idx else 0.0
+                    spike_row[v * encoder.N_sam:(v + 1) * encoder.N_sam] = \
+                        encoder.encode_scalar(channel_val, 1.0, 0.0, rng=rng,
+                                              deterministic=False)
             f_spike = reservoir.compute_spike_current(spike_row)
         else:
             val = normalize(np.array([current_idx], dtype=np.float64), vocab_size)[0]
@@ -255,11 +275,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--washout",     type=int,   default=200,    help="Reservoir washout steps")
     p.add_argument("--N-res",       type=int,   default=500,    help="Reservoir size")
     p.add_argument("--N-sam",       type=int,   default=50,     help="Spike sampling times")
-    p.add_argument("--rho",         type=float, default=0.9,    help="Spectral radius")
+    p.add_argument("--rho",         type=float, default=0.95,    help="Spectral radius")
     p.add_argument("--eta",         type=float, default=0.1,    help="Reservoir sparsity")
     p.add_argument("--mu",          type=float, default=1e-4,   help="Ridge regularisation")
     p.add_argument("--psi",         type=float, default=2000.0, help="Synaptic time constant")
-    p.add_argument("--input-scaling", type=float, default=0.8,    help="Input weight scaling")
+    p.add_argument("--input-scaling", type=float, default=0.01,    help="Input weight scaling")
     p.add_argument("--seed",        type=int,   default=42,     help="Random seed")
     p.add_argument("--gen-len",     type=int,   default=200,    help="Characters to generate")
     p.add_argument("--temperature", type=float, default=0.0,
@@ -270,6 +290,8 @@ def parse_args() -> argparse.Namespace:
                         "'one-hot' (orthogonal categorical vectors)")
     p.add_argument("--deterministic", action="store_true",
                    help="Use deterministic spike encoding (stable patterns)")
+    p.add_argument("--batch-size",  type=int,   default=20000,
+                   help="Number of characters to process in one batch (to save RAM)")
     p.add_argument("--no-baseline", action="store_true",
                    help="Skip baseline ESN")
     return p.parse_args()
@@ -351,29 +373,79 @@ def main() -> None:
             * args.input_scaling
         )
 
+    # -----------------------------------------------------------------------
+    # Incremental Fitting (to save RAM)
+    # -----------------------------------------------------------------------
+    batch_size = args.batch_size
+    n_batches = int(np.ceil(args.train_len / batch_size))
+    
+    print(f"  Training in {n_batches} batches (batch_size={batch_size})...")
+    
+    # Normal equations: (X X^T + mu I) W_out^T = X Y^T
+    # Or in our case: W_out = Y X^T (X X^T + mu I)^-1
+    # We accumulate A = X X^T and B = Y X^T
+    A = np.zeros((args.N_res, args.N_res))
+    
     if args.encoding == "one-hot":
-        # Build the full one-hot spike matrix outside of model.fit(),
-        # then pass the pre-computed spike matrix to the reservoir directly.
-        rng_enc = np.random.default_rng(args.seed)
-        print("  Building one-hot spike matrix (train)...")
-        spike_matrix_train = build_one_hot_spike_matrix(
-            data_int[:args.train_len], vocab_size,
-            model.encoder, rng_enc,
-            deterministic=args.deterministic
-        )
-        # Harvest reservoir states and fit readout
-        X_train = model.reservoir.harvest_states(
-            spike_matrix_train, washout=args.washout
-        )
-        T_eff = X_train.shape[1]
-        y_train_one_hot = to_one_hot(data_int[1:args.train_len + 1], vocab_size).T
-        y_target = y_train_one_hot[:, args.washout:args.washout + T_eff]
-        XXT = X_train @ X_train.T
-        reg = model.mu * np.eye(model.N_res)
-        model.W_out = y_target @ X_train.T @ np.linalg.inv(XXT + reg)
+        B = np.zeros((vocab_size, args.N_res))
     else:
-        u_train = data_norm[:args.train_len]
-        model.fit(u_train, y_train, washout=args.washout)
+        B = np.zeros((1, args.N_res))
+        
+    res_state = np.zeros(args.N_res)
+    rng_enc = np.random.default_rng(args.seed)
+    
+    total_processed = 0
+    for b in range(n_batches):
+        start_idx = b * batch_size
+        end_idx = min((b + 1) * batch_size, args.train_len)
+        current_batch_len = end_idx - start_idx
+        
+        if current_batch_len <= 0:
+            break
+            
+        # 1. Inputs and Targets for this batch
+        batch_data_int = data_int[start_idx:end_idx]
+        # Targets are t+1
+        batch_targets_int = data_int[start_idx + 1:end_idx + 1]
+        
+        # 2. Build Spike Matrix
+        if args.encoding == "one-hot":
+            spike_matrix_batch = build_one_hot_spike_matrix(
+                batch_data_int, vocab_size, model.encoder, rng_enc,
+                deterministic=args.deterministic
+            )
+        else:
+            batch_data_norm = data_norm[start_idx:end_idx]
+            spike_matrix_batch = model.encoder.encode_series(batch_data_norm, rng=rng_enc)
+            
+        # 3. Harvest States
+        # Only apply washout on the very first batch
+        current_washout = args.washout if start_idx == 0 else 0
+        
+        X_batch, res_state = model.reservoir.harvest_states(
+            spike_matrix_batch, washout=current_washout, initial_state=res_state
+        )
+        
+        # 4. Align Targets
+        T_eff = X_batch.shape[1]
+        if T_eff > 0:
+            if args.encoding == "one-hot":
+                # Convert targets to one-hot: (T_eff, vocab_size)
+                y_batch = to_one_hot(batch_targets_int[-T_eff:], vocab_size).T # (vocab_size, T_eff)
+            else:
+                y_batch = data_norm[end_idx - T_eff + 1 : end_idx + 1].reshape(1, -1)
+            
+            # 5. Accumulate
+            A += X_batch @ X_batch.T
+            B += y_batch @ X_batch.T
+            
+        total_processed += T_eff
+        print(f"    Batch {b+1}/{n_batches} done. Total states harvested: {total_processed}", end='\r')
+    
+    print(f"\n  Solving linear system...")
+    reg = args.mu * np.eye(args.N_res)
+    model.W_out = B @ np.linalg.inv(A + reg)
+
 
     t_fit = time.perf_counter() - t0
     print(f"  Done in {t_fit:.1f}s")
@@ -386,7 +458,7 @@ def main() -> None:
             vocab_size, model.encoder, rng_enc2,
             deterministic=args.deterministic
         )
-        X_test = model.reservoir.harvest_states(spike_matrix_test, washout=0)
+        X_test, _ = model.reservoir.harvest_states(spike_matrix_test, washout=0)
         y_pred = (model.W_out @ X_test).T
     else:
         u_test = data_norm[args.train_len:args.train_len + args.test_len]
@@ -436,11 +508,40 @@ def main() -> None:
         baseline = ESN(N_res=args.N_res, rho=args.rho, eta=args.eta,
                        mu=args.mu, input_scaling=args.input_scaling,
                        seed=args.seed)
-        baseline.fit(u_train_scalar, y_train, washout=args.washout)
+        A_base = np.zeros((args.N_res, args.N_res))
+        B_base = np.zeros((1, args.N_res))
+        res_state_base = np.zeros(args.N_res)
+        
+        for b in range(n_batches):
+            start_idx = b * batch_size
+            end_idx = min((b + 1) * batch_size, args.train_len)
+            if end_idx <= start_idx: break
+            
+            u_batch = data_norm[start_idx:end_idx]
+            y_batch_full = data_norm[start_idx + 1:end_idx + 1]
+            current_washout = args.washout if start_idx == 0 else 0
+            
+            T_batch = len(u_batch)
+            X_batch = np.zeros((args.N_res, T_batch))
+            x_b = res_state_base
+            for t in range(T_batch):
+                x_b = np.tanh(baseline.W_in.flatten() * u_batch[t] + baseline.W_res @ x_b)
+                X_batch[:, t] = x_b
+            res_state_base = x_b
+            
+            X_eff = X_batch[:, current_washout:]
+            T_eff = X_eff.shape[1]
+            if T_eff > 0:
+                y_batch = y_batch_full[-T_eff:].reshape(1, -1)
+                A_base += X_eff @ X_eff.T
+                B_base += y_batch @ X_eff.T
+        
+        reg = args.mu * np.eye(args.N_res)
+        baseline.W_out = B_base @ np.linalg.inv(A_base + reg)
         t_base = time.perf_counter() - t0
         print(f"  Done in {t_base:.1f}s")
 
-        y_pred_base = baseline.predict(u_test_scalar, washout=0)
+        y_pred_base, _ = baseline.predict(u_test_scalar, washout=0)
         rmse_base   = baseline.rmse(y_test, y_pred_base)
         acc_base    = char_accuracy(y_test, y_pred_base, vocab_size)
         top3_base   = top_k_accuracy(y_test, y_pred_base, vocab_size, k=3)

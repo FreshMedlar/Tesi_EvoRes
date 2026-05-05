@@ -48,35 +48,47 @@ class ESN:
             return self._init_reservoir()
         return self.rho * (W / lmax)
 
-    def fit(self, u, y, washout=200):
+    def fit(self, u, y, washout=200, initial_state=None):
         T = len(u)
         X = np.zeros((self.N_res, T))
-        x = np.zeros(self.N_res)
+        if initial_state is not None:
+            x = initial_state.copy()
+        else:
+            x = np.zeros(self.N_res)
+            
         for t in range(T):
             x = np.tanh(self.W_in.flatten() * u[t] + self.W_res @ x)
             X[:, t] = x
-        X = X[:, washout:]
-        T_eff = X.shape[1]
+            
+        X_eff = X[:, washout:]
+        T_eff = X_eff.shape[1]
+        
         if len(y) == T:
             y_target = y[washout:washout + T_eff].reshape(1, -1)
         else:
             y_target = y[:T_eff].reshape(1, -1)
-        XXT = X @ X.T
+            
+        XXT = X_eff @ X_eff.T
         reg = self.mu * np.eye(self.N_res)
-        self.W_out = y_target @ X.T @ np.linalg.inv(XXT + reg)
-        return self
+        self.W_out = y_target @ X_eff.T @ np.linalg.inv(XXT + reg)
+        return self, x
 
-    def predict(self, u, washout=0):
+    def predict(self, u, washout=0, initial_state=None):
         if self.W_out is None:
             raise RuntimeError("Call fit() first.")
         T = len(u)
         X = np.zeros((self.N_res, T))
-        x = np.zeros(self.N_res)
+        if initial_state is not None:
+            x = initial_state.copy()
+        else:
+            x = np.zeros(self.N_res)
+            
         for t in range(T):
             x = np.tanh(self.W_in.flatten() * u[t] + self.W_res @ x)
             X[:, t] = x
-        X = X[:, washout:]
-        return (self.W_out @ X).flatten()
+            
+        X_eff = X[:, washout:]
+        return (self.W_out @ X_eff).flatten(), x
 
     @staticmethod
     def rmse(y_true, y_pred):

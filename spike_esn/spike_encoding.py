@@ -142,8 +142,25 @@ class SpikeEncoder:
         T = len(u_series)
         U_max = float(np.max(u_series))
         U_min = float(np.min(u_series))
+        denom = U_max - U_min
+
+        if denom == 0:
+            h_kappas = np.full(T, self.N_sam / 2.0)
+        else:
+            h_kappas = self.N_sam * (U_max - u_series) / denom
+
+        h_kappas = np.maximum(h_kappas, 1.0)
+
+        # Fast vectorised Poisson sampling
+        kappas = rng.poisson(lam=h_kappas[:, None], size=(T, self.N_sam))
+        kappas = np.maximum(kappas, 1)
+        cumsums = np.cumsum(kappas, axis=1)
+
+        valid = cumsums <= self.N_sam
+        b_idx, i_idx = np.where(valid)
+        spike_pos = cumsums[b_idx, i_idx] - 1
 
         spikes = np.zeros((T, self.N_sam), dtype=np.int8)
-        for t in range(T):
-            spikes[t] = self.encode_scalar(u_series[t], U_max, U_min, rng)
+        spikes[b_idx, spike_pos] = 1
+
         return spikes

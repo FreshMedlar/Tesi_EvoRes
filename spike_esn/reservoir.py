@@ -56,6 +56,10 @@ class SpikeReservoir:
         self.input_scaling = input_scaling
         self.rng = np.random.default_rng(seed)
 
+        # Precompute the exponential kernel for fast spike current calculation
+        t_seq = np.arange(1, self.N_sam + 1, dtype=np.float64)
+        self._spike_kernel = np.exp(-(t_seq[:, None] - t_seq[None, :]) / self.psi).T
+
         # Initialise weight matrices
         self.W_in = self._init_input_weights()
         self.W_res = self._init_reservoir_weights()
@@ -109,23 +113,12 @@ class SpikeReservoir:
         (one-hot) encoding correctly. Each channel gets its own local
         timeline from 1 to N_sam.
         """
-        N_total = len(spike_seq)
-        N_sam = self.N_sam
-        n_channels = N_total // N_sam
+        n_channels = len(spike_seq) // self.N_sam
+        spikes_2d = spike_seq.reshape(n_channels, self.N_sam)
         
-        # Reshape to (n_channels, N_sam)
-        spikes_2d = spike_seq.reshape(n_channels, N_sam)
-        f_spike_2d = np.zeros((n_channels, N_sam), dtype=np.float64)
-        
-        # t_seq runs from 1 to N_sam (1-indexed)
-        t_seq = np.arange(1, N_sam + 1, dtype=np.float64)
-
-        for c in range(n_channels):
-            spike_positions = np.where(spikes_2d[c] == 1)[0] + 1
-            if len(spike_positions) > 0:
-                # Eq. 9 — Vectorised over all spike times in this channel
-                diffs = t_seq[:, None] - spike_positions[None, :]
-                f_spike_2d[c] = np.sum(np.exp(-diffs / self.psi), axis=1)
+        # Fast matrix multiplication instead of looping over channels
+        # spikes_2d @ _spike_kernel efficiently computes Eq. 9 for all channels
+        f_spike_2d = spikes_2d @ self._spike_kernel
         
         return f_spike_2d.flatten()
 
@@ -160,7 +153,8 @@ class SpikeReservoir:
         self,
         spike_matrix: NDArray[np.int8],
         washout: int = 0,
-    ) -> NDArray[np.float64]:
+        initial_state: NDArray[np.float64] | None = None,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Drive the reservoir with a spike-encoded time series and collect states.
 
         Parameters
@@ -169,20 +163,40 @@ class SpikeReservoir:
             Each row is the spike sequence for one time step.
         washout : int
             Number of initial time steps to discard (reservoir warm-up).
+        initial_state : ndarray of shape (N_res,) or None
+            The starting state of the reservoir. Defaults to zeros.
 
         Returns
         -------
         X : ndarray of shape (N_res, T − washout)
             State collection matrix (Eq. 10), each column is x(t).
+        final_state : ndarray of shape (N_res,)
+            The state of the reservoir after the last time step.
         """
         T = spike_matrix.shape[0]
+        n_channels = spike_matrix.shape[1] // self.N_sam
+        
+        # 1. Fast vectorised computation of f_spike for ALL time steps at once
+        # Reshape to (T, C, N_sam) and multiply by kernel (N_sam, N_sam)
+        spikes_3d = spike_matrix.reshape(T, n_channels, self.N_sam)
+        f_spike_3d = spikes_3d @ self._spike_kernel
+        f_spike_all = f_spike_3d.reshape(T, n_channels * self.N_sam)
+        
+        # 2. Precompute the W_in projection for all time steps (Level 3 BLAS)
+        # W_in is (N_res, C * N_sam), f_spike_all.T is (C * N_sam, T)
+        # Result is (N_res, T)
+        W_in_f_spike = self.W_in @ f_spike_all.T
+        
         X_all = np.zeros((self.N_res, T), dtype=np.float64)
-        x = np.zeros(self.N_res, dtype=np.float64)  # x(0) = 0
+        if initial_state is not None:
+            x = initial_state.copy()
+        else:
+            x = np.zeros(self.N_res, dtype=np.float64)  # x(0) = 0
 
         for t in range(T):
-            f_spike = self.compute_spike_current(spike_matrix[t])
-            x = self.update_state(f_spike, x)
+            # 3. Only the recurrent state update remains in the sequential loop!
+            x = np.tanh(W_in_f_spike[:, t] + self.W_res @ x)
             X_all[:, t] = x
 
         # Discard washout period
-        return X_all[:, washout:]
+        return X_all[:, washout:], x

@@ -61,7 +61,7 @@ class SpikeESN:
         spike_matrix = self.encoder.encode_series(u, rng=rng)
 
         # Steps 10-13: Drive reservoir and collect states (Eq. 10)
-        X = self.reservoir.harvest_states(spike_matrix, washout=washout)
+        X, _ = self.reservoir.harvest_states(spike_matrix, washout=washout)
         self._train_states = X
 
         # Align target
@@ -98,7 +98,7 @@ class SpikeESN:
 
         rng = np.random.default_rng(self.seed)
         spike_matrix = self.encoder.encode_series(u, rng=rng)
-        X = self.reservoir.harvest_states(spike_matrix, washout=washout)
+        X, _ = self.reservoir.harvest_states(spike_matrix, washout=washout)
         return (self.W_out @ X).flatten()
 
     @staticmethod
