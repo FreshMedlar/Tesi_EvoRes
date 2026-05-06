@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import pickle
 import time
 
 import numpy as np
@@ -294,6 +295,10 @@ def parse_args() -> argparse.Namespace:
                    help="Number of characters to process in one batch (to save RAM)")
     p.add_argument("--no-baseline", action="store_true",
                    help="Skip baseline ESN")
+    p.add_argument("--save", type=str, default=None, metavar="PATH",
+                   help="Save the pre-trained model to PATH (.pkl) for later "
+                        "online learning. Stored data: all weight matrices, "
+                        "final reservoir state, vocab & hyperparameters.")
     return p.parse_args()
 
 
@@ -446,9 +451,25 @@ def main() -> None:
     reg = args.mu * np.eye(args.N_res)
     model.W_out = B @ np.linalg.inv(A + reg)
 
-
     t_fit = time.perf_counter() - t0
     print(f"  Done in {t_fit:.1f}s")
+
+    # -----------------------------------------------------------------------
+    # Save pre-trained model (optional — for online learning)
+    # -----------------------------------------------------------------------
+    if args.save is not None:
+        # Attach metadata needed to resume online learning without re-training
+        model._online_init_state = res_state          # final reservoir state
+        model._online_vocab_size = vocab_size         # vocabulary size
+        model._online_encoding   = args.encoding      # encoding mode
+        model._online_chars      = chars              # sorted character list
+        model._online_char_to_int = char_to_int       # char → index mapping
+        model._online_int_to_char = int_to_char       # index → char mapping
+
+        save_path = args.save if args.save.endswith(".pkl") else args.save + ".pkl"
+        with open(save_path, "wb") as f:
+            pickle.dump(model, f, protocol=pickle.HIGHEST_PROTOCOL)
+        print(f"  Model saved to '{save_path}'")
 
     if args.encoding == "one-hot":
         rng_enc2 = np.random.default_rng(args.seed)
