@@ -18,6 +18,8 @@ Options:
     --mu          FLOAT  Ridge regularisation (default: 1e-4)
     --psi         FLOAT  Synaptic time const  (default: 2000)
     --input-scaling FLOAT W_in scaling         (default: 0.8)
+    --N-in        INT    Input-driven neurons  (default: None/All)
+    --locality    FLOAT  Topology locality     (default: 0.0)
     --seed        INT    Random seed          (default: 42)
     --gen-len     INT    Characters to gen    (default: 200)
     --encoding    STR    Input encoding: 'scalar' or 'one-hot' (default: scalar)
@@ -281,6 +283,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--mu",          type=float, default=1e-4,   help="Ridge regularisation")
     p.add_argument("--psi",         type=float, default=2000.0, help="Synaptic time constant")
     p.add_argument("--input-scaling", type=float, default=0.01,    help="Input weight scaling")
+    p.add_argument("--N-in",        type=int,   default=None,   help="Number of input-driven neurons (None = all)")
+    p.add_argument("--locality",    type=float, default=0.0,    help="Topology locality (0=random, >0=local/small-world)")
     p.add_argument("--seed",        type=int,   default=42,     help="Random seed")
     p.add_argument("--gen-len",     type=int,   default=200,    help="Characters to generate")
     p.add_argument("--temperature", type=float, default=0.0,
@@ -366,17 +370,18 @@ def main() -> None:
     # Always construct with per-channel N_sam so encoder.N_sam stays correct.
     # For one-hot mode, W_in is then resized to (N_res, effective_N_sam).
     model = SpikeESN(
-        N_res=args.N_res, N_sam=args.N_sam,
-        rho=args.rho, eta=args.eta, mu=args.mu, psi=args.psi,
-        input_scaling=args.input_scaling, seed=args.seed,
+        N_res=args.N_res, N_sam=args.N_sam, rho=args.rho, eta=args.eta,
+        mu=args.mu, psi=args.psi, input_scaling=args.input_scaling,
+        N_in=args.N_in, locality=args.locality, seed=args.seed
     )
     if args.encoding == "one-hot":
         # Resize W_in: (N_res, effective_N_sam) — keeps same RNG stream seed
         rng_win = np.random.default_rng(args.seed)
-        model.reservoir.W_in = (
-            rng_win.uniform(-1, 1, size=(args.N_res, effective_N_sam))
-            * args.input_scaling
-        )
+        W_in_new = np.zeros((args.N_res, effective_N_sam))
+        n_in_val = args.N_in if args.N_in is not None else args.N_res
+        if n_in_val > 0:
+            W_in_new[:n_in_val, :] = rng_win.uniform(-1, 1, size=(n_in_val, effective_N_sam))
+        model.reservoir.W_in = W_in_new * args.input_scaling
 
     # -----------------------------------------------------------------------
     # Incremental Fitting (to save RAM)
@@ -462,6 +467,8 @@ def main() -> None:
         model._online_init_state = res_state          # final reservoir state
         model._online_vocab_size = vocab_size         # vocabulary size
         model._online_encoding   = args.encoding      # encoding mode
+        model._online_N_in       = args.N_in          # number of input-driven neurons
+        model._online_locality   = args.locality      # topology locality
         model._online_chars      = chars              # sorted character list
         model._online_char_to_int = char_to_int       # char → index mapping
         model._online_int_to_char = int_to_char       # index → char mapping

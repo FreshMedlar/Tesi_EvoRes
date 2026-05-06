@@ -23,11 +23,14 @@ class SpikeESN:
     mu    : float — Ridge regularisation (default: 1e-8).
     psi   : float — Synaptic time constant (default: 5000).
     input_scaling : float — W_in scaling (default: 0.8).
+    N_in  : int or None — Number of input-driven neurons.
+    locality : float — Locality factor for topology (default: 0.0).
     seed  : int or None — Random seed.
     """
 
     def __init__(self, N_res=100, N_sam=100, rho=0.9, eta=0.1,
-                 mu=1e-8, psi=5000.0, input_scaling=0.8, seed=None):
+                 mu=1e-8, psi=5000.0, input_scaling=0.8, N_in=None, 
+                 locality=0.0, seed=None):
         self.N_res = N_res
         self.N_sam = N_sam
         self.rho = rho
@@ -35,12 +38,15 @@ class SpikeESN:
         self.mu = mu
         self.psi = psi
         self.input_scaling = input_scaling
+        self.N_in = N_in
+        self.locality = locality
         self.seed = seed
 
         self.encoder = SpikeEncoder(N_sam=N_sam)
         self.reservoir = SpikeReservoir(
             N_res=N_res, N_sam=N_sam, rho=rho, eta=eta,
-            psi=psi, input_scaling=input_scaling, seed=seed,
+            psi=psi, input_scaling=input_scaling, N_in=N_in, 
+            locality=locality, seed=seed,
         )
         self.W_out: NDArray[np.float64] | None = None
         self._train_states: NDArray[np.float64] | None = None

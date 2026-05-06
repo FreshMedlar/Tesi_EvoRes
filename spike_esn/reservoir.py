@@ -34,6 +34,13 @@ class SpikeReservoir:
         Controls the magnitude and decay of the exponential current kernel.
     input_scaling : float
         Scaling factor applied to W_in (set to 0.8 in the paper).
+    N_in : int or None
+        Number of neurons that receive input. If None, all N_res neurons
+        receive input. If provided, only the first N_in neurons are connected.
+    locality : float
+        Locality factor for topology. 0 = random (Erdos-Renyi). 
+        > 0 = spatially local connections where the probability of a synapse 
+        decays as 1/(dist+1)^locality. Creates a small-world network.
     seed : int or None
         Random seed for reproducibility.
     """
@@ -46,6 +53,8 @@ class SpikeReservoir:
         eta: float = 0.1,
         psi: float = 5000.0,
         input_scaling: float = 0.8,
+        N_in: int | None = None,
+        locality: float = 0.0,
         seed: int | None = None,
     ) -> None:
         self.N_res = N_res
@@ -54,6 +63,8 @@ class SpikeReservoir:
         self.eta = eta
         self.psi = psi
         self.input_scaling = input_scaling
+        self.N_in = N_in if N_in is not None else N_res
+        self.locality = locality
         self.rng = np.random.default_rng(seed)
 
         # Precompute the exponential kernel for fast spike current calculation
@@ -68,8 +79,17 @@ class SpikeReservoir:
     # Weight initialisation
     # ------------------------------------------------------------------
     def _init_input_weights(self) -> NDArray[np.float64]:
-        """Generate W_in ∈ ℝ^{N_res × N_sam} from Uniform(−1, 1), scaled."""
-        W_in = self.rng.uniform(-1, 1, size=(self.N_res, self.N_sam))
+        """Generate W_in ∈ ℝ^{N_res × N_sam} from Uniform(−1, 1), scaled.
+        If self.N_in < self.N_res, only the first N_in rows are non-zero.
+        """
+        # Start with a zero matrix
+        W_in = np.zeros((self.N_res, self.N_sam), dtype=np.float64)
+
+        # Only initialize the first N_in rows
+        if self.N_in > 0:
+            active_rows = self.rng.uniform(-1, 1, size=(self.N_in, self.N_sam))
+            W_in[:self.N_in, :] = active_rows
+
         return W_in * self.input_scaling
 
     def _init_reservoir_weights(self) -> NDArray[np.float64]:
@@ -86,7 +106,32 @@ class SpikeReservoir:
         W = self.rng.uniform(-1, 1, size=(N, N))
 
         # Apply sparsity mask
-        mask = self.rng.random(size=(N, N)) < self.eta
+        if self.locality <= 0:
+            # Standard uniform random sparsity
+            mask = self.rng.random(size=(N, N)) < self.eta
+        else:
+            # Distance-dependent sparsity (Small World)
+            # 1. Compute distances on a ring
+            idx = np.arange(N)
+            dist_mat = np.abs(idx[:, None] - idx[None, :])
+            # Account for ring wrap-around
+            dist_mat = np.minimum(dist_mat, N - dist_mat)
+
+            # 2. Compute probabilities: P(d) = 1 / (d + 1)^locality
+            # We then scale these probabilities so the mean matches self.eta
+            p_mat = 1.0 / (dist_mat + 1.0)**self.locality
+            
+            # Zero out self-connections
+            np.fill_diagonal(p_mat, 0)
+            
+            # Normalize so the overall sparsity matches eta
+            current_mean = np.mean(p_mat)
+            if current_mean > 0:
+                p_mat = p_mat * (self.eta / current_mean)
+            p_mat = np.clip(p_mat, 0, 1)
+
+            mask = self.rng.random(size=(N, N)) < p_mat
+
         W = W * mask
 
         # Compute maximum eigenvalue
