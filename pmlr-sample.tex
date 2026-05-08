@@ -1,0 +1,425 @@
+%%%% SELECT ONE OF THE FOLLOWING COMMANDS %%%%%%%%
+
+%%% TEMPLATE FOR PROCEEDINGS TRACK %%%%
+%\documentclass[mlmain]{jmlr}
+
+%% TEMPLATE FOR Extended Abstract Track %%%%%%%
+ \documentclass[mlabstract]{jmlr}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Watermark 
+%These 4 commands must be removed for the camera-ready version.
+%\usepackage[hpos=300px,vpos=70px]{draftwatermark}
+%\SetWatermarkText{\test}
+%\SetWatermarkScale{1}
+%\SetWatermarkAngle{0}
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+   
+% The following packages will be automatically loaded:
+% amsmath, amssymb, natbib, graphicx, url, algorithm2e
+
+
+%%% WARNING %%%%
+%%% 1) Please, use the packages automatically loaded to manage references, write equations, and include figures and algorithms. The use of different packages could create problems in the generation of the camera-ready version. Please, follow the examples provided in this file.
+%%% 2) References must be included in a .bib file.
+%%% 3) Write your paper in a single .tex file.
+%%%
+
+%%%% SOFTWARE %%%%
+%%% Many papers have associated code provided. If that is your case, include a link to the code in the paper as usual and provide a link to the code in the following comment too. We will use the link in the next comment when we generate the proceedings.
+%%% Link to code: http://?? (only for camera ready)
+
+ %\usepackage{rotating}% for sideways figures and tables
+\usepackage{longtable}% for long tables
+
+ % The booktabs package is used by this sample document
+ % (it provides \toprule, \midrule and \bottomrule).
+ % Remove the next line if you don't require it.
+\usepackage{booktabs}
+ % The siunitx package is used by this sample document
+ % to align numbers in a column by their decimal point.
+ % Remove the next line if you don't require it.
+\usepackage[load-configurations=version-1]{siunitx} % newer version
+ %\usepackage{siunitx}
+
+ % The following command is just for this sample document:
+\newcommand{\cs}[1]{\texttt{\char`\\#1}}
+
+ % Define an unnumbered theorem just for this sample document:
+\theorembodyfont{\upshape}
+\theoremheaderfont{\scshape}
+\theorempostheader{:}
+\theoremsep{\newline}
+\newtheorem*{note}{Note}
+
+
+\usepackage{mathtools}
+\usepackage{amsmath,amsfonts,amssymb,algorithm,algorithmicx,algpseudocode,graphicx}
+\usepackage{xcolor}
+\definecolor{cadmiumorange}{rgb}{0.93, 0.53, 0.18}
+\definecolor{darkorange}{rgb}{1.0, 0.55, 0.0}
+\definecolor{mangotango}{rgb}{1.0, 0.51, 0.26}
+\definecolor{darkpurple}{rgb}{0.5,0,0.5}
+\definecolor{mydarkgrey}{rgb}{0.27, 0.27, 0.27}
+\definecolor{antiquefuchsia}{rgb}{0.57, 0.36, 0.51}
+\definecolor{cadetblue}{rgb}{0., 0.62, 0.63}
+\definecolor{brightcerulean}{rgb}{0.11, 0.67, 0.84}
+\definecolor{brightmaroon}{rgb}{0.76, 0.13, 0.28}
+\definecolor{mymaroon}{rgb}{0.62, 0.05, 0.19}
+\definecolor{mymaroon2}{cmyk}{0, 0.739, 0.614, 0.368}
+\definecolor{darkpurple}{rgb}{0.5,0,0.5}
+\definecolor{mydarkgrey}{rgb}{0.27, 0.27, 0.27}
+\definecolor{mymagenta}{rgb}{0.8125, 0, 0.8125}
+\definecolor{mygreen}{rgb}{0.37, 0.62, 0.63}
+\definecolor{cambridgeblue}{rgb}{0.64, 0.76, 0.68}
+\definecolor{carmine}{rgb}{0.59, 0.0, 0.09}
+\usepackage{nicefrac}   
+\usepackage{graphicx} 
+\usepackage{bibunits}
+\usepackage{indentfirst}
+%\setlength{\parindent}{15pt}
+%\usepackage{hyperref}
+\usepackage{url}
+\newcommand{\de}{\text{d}}
+\hypersetup{colorlinks,urlcolor=cadetblue, citecolor=mygreen, linkcolor=carmine}
+\usepackage{mathtools,amsmath}
+\usepackage{url}
+\usepackage{bibunits}
+
+%%%% DON'T CHANGE %%%%%%%%%
+\jmlrvolume{}
+\firstpageno{1}
+\editors{List of editors' names}
+
+\jmlryear{2025}
+\jmlrworkshop{Symmetry and Geometry in Neural Representations}
+
+%\editor{Editor's name}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\title[Meta-learning three-factor rules]{Meta-learning three-factor plasticity rules for\\ structured credit assignment with sparse feedback 
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THE MANUSCRIPT, DATA AND CODE MUST BE ANONYMIZED DURING THE REVIEW PROCESS. 
+% DON'T INCLUDE ANY INFORMATION ABOUT AUTHORS DURING THE REVIEW PROCESS.
+% Information about authors (Full names, emails, affiliations) have to be provided only for the submission of the camera-ready version.  Only in that case, you can uncomment and use the next blocks.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ % Use \Name{Author Name} to specify the name.fset
+
+ % Spaces are used to separate forenames from the surname so that
+ % the surnames can be picked up for the page header and copyright footer.
+ 
+ % If the surname contains spaces, enclose the surname
+ % in braces, e.g. \Name{John {Smith Jones}} similarly
+ % if the name has a "von" part, e.g \Name{Jane {de Winter}}.
+ % If the first letter in the forenames is a diacritic
+ % enclose the diacritic in braces, e.g. \Name{{\'E}louise Smith}
+
+ % *** Make sure there's no spurious space before \nametag ***
+
+ % Two authors with the same address
+%   \author{\Name{Author Name1\nametag{\thanks{with a note}}} \Email{abc@sample.com}\and
+%   \Name{Author Name2} \Email{xyz@sample.com}\\
+%   \addr Address}
+
+  %Three or more authors with the same address:
+%   \author{\Name{Author Name1} \Email{an1@sample.com}\\
+%   \Name{Author Name2} \Email{an2@sample.com}\\
+%   \Name{Author Name3} \Email{an3@sample.com}\\
+%   \Name{Author Name4} \Email{an4@sample.com}\\
+%   \Name{Author Name5} \Email{an5@sample.com}\\
+%   \Name{Author Name6} \Email{an6@sample.com}\\
+%   \Name{Author Name7} \Email{an7@sample.com}\\
+%   \Name{Author Name8} \Email{an8@sample.com}\\
+%   \Name{Author Name9} \Email{an9@sample.com}\\
+%   \Name{Author Name10} \Email{an10@sample.com}\\
+%   \Name{Author Name11} \Email{an11@sample.com}\\
+%   \Name{Author Name12} \Email{an12@sample.com}\\
+%   \Name{Author Name13} \Email{an13@sample.com}\\
+%   \Name{Author Name14} \Email{an14@sample.com}\\
+%   \addr Address}
+
+
+ % Authors with different addresses:
+  \author{\Name{Dimitra Maoutsa} \Email{dimitra.maoutsa@gmail.com}\\
+  }
+ % \AND
+ % \Name{Author Name2} \Email{xyz@sample.com}\\
+ % \addr Address 2
+ %}
+
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Biological neural networks learn complex behaviors from sparse, delayed feedback using local synaptic plasticity, yet the mechanisms enabling structured credit assignment remain elusive. In contrast, artificial recurrent networks solving similar tasks typically rely on biologically implausible global learning rules or hand-crafted local updates. The space of local plasticity rules capable of supporting learning from delayed reinforcement remains largely unexplored. Here, we present a meta-learning framework that discovers local learning rules for structured credit assignment in recurrent networks trained with sparse feedback. Our approach interleaves local neo-Hebbian-like updates during task execution with an outer loop that optimizes plasticity parameters via \textbf{tangent-propagation through learning}. The resulting three-factor learning rules enable long-timescale credit assignment using only local information and delayed rewards, offering new insights into biologically grounded mechanisms for learning in recurrent circuits.
+\end{abstract}
+\begin{keywords}
+reward-driven learning; plasticity; RNNs
+\end{keywords}
+
+\section{Introduction}
+\label{sec:intro}
+
+
+Learning in biological organisms involves changes in synaptic connections (synaptic plasticity) between neurons~\citep{bailey1993structural, mayford2012synapses}. Synaptic changes are believed to underlie memory formation and are essential for adaptive behaviour~\citep{hopfield1982neural}. Experimental evidence suggests that synaptic changes depend on the co-activation of pre- and postsynaptic activity~\citep{bi1998synaptic, sjostrom2001rate}, and possibly other local variables available at the synaptic site~\citep{graupner2012calcium, pedrosa2020voltage}. These unsupervised synaptic modifications have explained activity-dependent circuit refinement during development such as the emergence of functional properties like receptive field formation based on naturalistic input statistics~\citep{martin2000synaptic,blais1997receptive,brito2016nonlinear,gutig2003learning,law1994formation}.
+
+
+Yet, most organisms routinely solve complex tasks that require feedback through explicit supervisory or reinforcement signals. These signals are believed to gate or modulate plasticity, acting in the form of a third factor that scales and also possibly imposes the direction of the required synaptic modifications~\citep{kusmierz2017learning, sosis2024distinct} to facilitate long-lasting alignment of representations to behaviourally relevant dimensions~\citep{benezra2024learning}. How error- or reward-related information is propagated through the recurrent interactions is not yet clear.
+ %~\citep{lazar2009sorn, kappel2015stdp} %bellec2020solution, gilra2017predictive
+  While prior work has largely focused on hand-crafted synaptic updates for unsupervised neural circuit self-organization, or biologically plausible approximations of backpropagation~\citep{miconi2018differentiable}, the space of plasticity rules capable of supporting structured credit assignment from delayed feedback remains vastly underexplored.
+
+  
+\begin{figure}[h!]
+\includegraphics[width=\linewidth]{figure1b.pdf}
+\caption{\textbf{Outline of the proposed meta-learning framework.}} 
+\label{fig:1}
+\end{figure}
+
+
+
+Backpropagation through time (BPTT), the standard approach for training recurrent neural networks (RNNs), is biologically implausible since it requires symmetric forward and backward connections and non-local information~\citep{lillicrap2016random, guerguiev2017towards}. Although recent work has reformulated BPTT into more biologically plausible variants using random feedback~\citep{lillicrap2016random, murray2019local}, truncated approximations, or by learning feedback pathways~\citep{lindsey2020learning,shervani2023meta}, these methods require continuous error signals to refine recurrent connections.
+
+Here, we adopt a bottom-up approach: instead of imposing hand-designed synaptic rules, we discover biologically plausible plasticity rules that support learning through delayed reinforcement signals via meta-optimisation~\citep{schmidhuber1996simple}. Building on recent work~\citep{confavreux2023meta}, we parameterise plasticity rules as functions of local signals (presynaptic activity, postsynaptic activity, and synapse size) and meta-learn their parameters within a second reinforcement learning loop.
+With that, our ongoing work tackles the following questions:
+\begin{itemize}
+	\item	\textbf{Which local learning rules can implement structured credit assignment under biological constraints?}
+	\item	\textbf{
+    Do different plasticity rules give rise to different representations and/or dynamics?}
+	\end{itemize}
+
+Here we demonstrate that different forms of plasticity naturally lead to qualitatively different learning trajectories and internal representations, akin to their gradient-based counterparts trained with different learning rules.
+
+\section{Method}
+
+
+\paragraph{Network dynamics.} We consider recurrent neural networks of firing rate neurons coupled through a synaptic matrix ${\mathbf{W} \in \mathcal{R}^{N\times N}}$~\citep{sompolinsky1988chaos, barak2017recurrent}, with additional input and output matrices ${\mathbf{W}_{\text{in}} \in \mathcal{R}^{N\times N_{\text{in}}}}$ and ${\mathbf{W}_{\text{out}} \in \mathcal{R}^{N_{\text{out}}\times N }}$ that route task-relevant input into the recurrent circuit and read out network activation to generate task-specific outputs (actions). The equations governing the network dynamics are
+\begin{align}\label{main-1}
+\frac{\de \mathbf{x}^t}{\de t} &= -\mathbf{x}^t + \mathbf{W} \boldsymbol{\phi}({\mathbf{x}}^t) + \mathbf{W}_{\text{in}} \mathbf{u}^t,\quad \quad
+\mathbf{r}^t = \boldsymbol{\phi}({\mathbf{x}}^t) \dot{=} \tanh{({\mathbf{x}}^t)},
+\end{align}
+where $\mathbf{x}^t \in \mathcal{R}^N$ is the vector of pre-activations (or input currents) to each neuron in the network,  $\boldsymbol{\phi}(\cdot):\mathcal{R}^N \rightarrow \mathcal{R}^N $ denotes the single-neuron transfer functions, $\mathbf{r}^t \in \mathcal{R}^N$ is the vector of instantaneous firing rates, $\mathbf{u}^t$ stands for the activity of the $N_{\text{in}}$ input neurons. In the terms above, the $\cdot^t$ superscript indicates time dependence.
+Network outputs $\mathbf{z}^t$ are obtained from linear read-out neurons as
+  $  \mathbf{z}^t = \mathbf{W}_{\text{out}} \mathbf{r}^t.$
+
+
+\paragraph{Sparse feedback and parametrized learning rules.} We consider networks that learn cognitive tasks using biologically plausible local learning rules, guided by sparse reinforcement signals $R$ provided only at the end of each training episode.
+Each synapse between a pre-synaptic unit $j$ and a post-synaptic unit $i$ maintains an eligibility trace $e_{ij}$~\citep{izhikevich2007solving}, which integrates the history of (co-)activation during the episode. We define the evolution of eligibility traces with differential equations of the form
+\begin{equation}\label{eq:eligi}
+\frac{\de e^t_{ij}}{\de t} = \mathcal{H}_\theta( r^t_j, x^t_i) - \frac{e^t_{ij}}{\tau_e}= \sum_{0\leq k;\ell\leq d;}{ \theta_{k,\ell} \; \left(r^t_j\right)^k  \left(\bar{x}_i - x^t_i\right)^\ell  } - \frac{e^t_{ij}}{\tau_e}, 
+\end{equation}
+where $\tau_e$ is a decay time-scale, $\bar{x}_i$ is a running average of the pre-activation of neuron $i$, and $\theta_{k,\ell} \in \mathcal{R}$ are learnable coefficients.
+In contrast to eligibility traces based solely on first-order correlations~\citep{gerstner2018eligibility}, we use here a polynomial expression that captures richer interactions between pre- and post-synaptic activity.
+Each coefficient $\theta_{k,\ell}$ can be construed as a term-specific learning rate, which may be positive (Hebbian), negative (anti-Hebbian), or zero. 
+In our experiments, we set $d = 5$.
+
+
+The recurrent weight matrix $\mathbf{W}$ gets updated at the end of each training episode according to a reward-modulated learning rule
+%\begin{equation} \label{eq:update_rule}
+ %\Delta W_{ij} = \eta \, e^{T_s}_{ij}\, \left( R - \bar{R}\right), %- \frac{W_{ij}}{\tau_w},
+%\end{equation}
+\begin{equation} \label{eq:update_rule}
+\pi_{\Theta}\left(  \mathbf{\Delta W}^{(h)} \mid \boldsymbol{\Theta} \right) = \mathcal{MN}\left( \boldsymbol{\mu_{\Theta}}^{(h)},\, \sigma^2_w \, \mathbf{I}_N, \mathbf{I}_N \right) \quad \text{with}\quad  [\boldsymbol{\mu_{\Theta}}^{(h)}]_{ij} = \eta \, e^{T_h}_{ij}\, \left( {R}^{(h)} - \bar{R}^{(h)}\right) ,
+\end{equation}
+where with $\mathcal{MN}\left(\boldsymbol{\mu}, \boldsymbol{\Sigma}, \mathbf{V}\right)$ we denote the matrix normal distribution with mean $\boldsymbol{\mu} \in \mathcal{R}^{N\times N}$, and $\boldsymbol{\Sigma}$ and $\mathbf{V}$ the positive semi-definite matrices are the row- and column-variance, while superscript $h$ indicates episode index,
+$\eta$ denotes the learning rate,
+%$\tau_w$ denotes the time scale of weight decay, 
+$e^{T_s}_{ij}$ stands for the eligibility trace accumulated till the end of the $h$-th episode $T_h$, while $R$, $\bar{R}$ stand for the obtained and the expected reward. Here, we model reward expectations for each type of trial independently as a running average of past rewards for this trial type~\citep{miconi2017biologically}. This update rule enables credit assignment through the interaction between synaptic eligibility and trial-specific reward prediction error, consistent with neo-Hebbian three-factor learning rules hypothesized to operate in biological circuits~\citep{gerstner2018eligibility}. 
+
+\paragraph{Meta-learning plasticity rules.} While previous work has relied on hand-crafted eligibility trace dynamics and synaptic update rules to train recurrent neural networks with sparse feedback~\citep{miconi2017biologically}, we instead adopt a meta-learning approach to learn the parameters of the plasticity rules.
+Our framework consists of two nested training loops:
+\textcolor{mymaroon}{\textbf{(i)}} an inner loop in which the recurrent network is trained over several episodes using local learning rules and sparse reinforcement signals provided at the end of each episode \textcolor{carmine}{\textbf{(bio-plausible training)}}, as described above; and
+\textcolor{cadmiumorange}{\textbf{(ii)}} an outer loop that optimizes the plasticity meta-parameters $\boldsymbol{\Theta} = \{ \{\theta_{k,\ell}\}^5_{k,\ell=0}\, \}$ via gradient descent using \textbf{tangent-propagation through learning} (forward-mode differentiation through learning) on a meta-loss computed over $H$ training episodes (trials) \textcolor{cadmiumorange}{\textbf{(meta-training)}}.
+This approach allows the learning rules themselves to be adapted to the task, rather than be fixed a priori.
+
+
+
+\paragraph{Tangent-propagation through learning.} 
+Our goal is to optimise the learning rule parameters $\boldsymbol{\Theta}$ to maximise task performance, quantified as the expected cumulative reward $\langle \sum_h R \rangle$ obtained after a fixed number of learning episodes.
+However, the reward $R$ depends on the network’s output, which is determined by synaptic weights $\mathcal{W} = \{\mathbf{W}_{in}, \mathbf{W}, \mathbf{W}_{out}\}$, with $\mathbf{W}$ evolving under the update rule (Eq.\ref{eq:update_rule}). 
+Since weights depend on eligibility traces $e_{ij}$, themselves parameterised by $\boldsymbol{\Theta}$, the reward depends on the plasticity parameters through $\mathcal{W}$ and $\boldsymbol{\Theta}$. 
+Directly computing $\nabla_{\boldsymbol{\Theta}} \langle \sum_h R \rangle$ by backpropagating through the learning dynamics is computationally prohibitive since learning requires several hundreds of trials~\citep{lindsey2020learning}.
+We therefore, here, adopt a REINFORCE-inspired estimator~\citep{williams1992simple}, which involves computing the gradient of an expected value by observing outcomes (\emph{the rewards}) and scaling a measure of what elicited that outcome (\emph{the weight updates}) with the associated reward. 
+Thus, we approximate the gradient of the expected reward by
+\begin{equation}\label{appeq:reinforce-gradient}
+\nabla_\Theta \langle \sum_h  R^{(h)} \rangle \approx \langle \sum_h  \sum^H_{h^\prime=h+1} R^{(h^\prime)}  \nabla_\Theta \log \pi(\boldsymbol{\Delta}\mathbf{W}^{(h)} \mid \boldsymbol{\Theta}) \rangle \approx  \langle \sum_{h}  \sum^H_{h^\prime=h+1}  (R^{(h^\prime)} - \bar{R}^{(h^\prime)}) \;\,\nabla_\Theta \log \pi(\boldsymbol{\Delta}\mathbf{W}^{(h)}  \mid \boldsymbol{\Theta}) \rangle,
+\end{equation}
+where $\bar R$ stands for the baseline reward, and thus $(R - \bar{R})$ denotes the reward prediction error.
+%%%%%%%%%%
+Introducing the expression of the plasticity rule, we have in a component-wise formulation for each dimensional component of the plasticity parameters $\boldsymbol{\Theta}$
+\begin{align}\label{appeq:dimensional-gradient}
+\frac{\partial}{\partial \theta_{k,\ell}} \Big\langle \sum_{h=1}^{H-1} R^{(h)}\Big \rangle
+&= \Bigg\langle \mathlarger\sum_{h=1}^{H-1} \Big(\sum_{h^\prime=h}^{H-1}\delta R^{(h^\prime+1)} \Big)\, \frac{1}{\sigma_w^{2}}\sum_{i=1}^{N}\sum_{j=1}^{N}
+   \Big(\Delta w^{\,(h)}_{ij}-\mu^{\,(h)}_{ij}\Big)\;
+   \frac{\partial \mu^{\,(h)}_{ij}}{\partial \theta_{k, \ell}} \Bigg\rangle_S,
+  \end{align}
+where the expectation $\langle \cdot \rangle_S$ is considered over independent sessions $S$. This requires the computation of the sensitivity of the mean weight update wrt to the plasticity parameters $ \frac{\partial \mu^{\,(h)}_{ij}}{\partial \theta_{kl}}$ over training. To that end, we propagate the gradients of the within-trial pre-activations $\mathbf{x}^t$, $\boldsymbol{\chi}_{k,\ell}^t \in \mathcal{R}^N$ (\textbf{state tangent}), the pre-activation trace $\bar{\mathbf{x}}^t$, $\boldsymbol{\psi}_{k,\ell}^t \in \mathcal{R}^N$ (\textbf{trace tangent}), and of the eligibility traces of each synaptic pair $ij$, $e^t_{ij}$, ${[\mathbf{z}^t_{k,\ell}]}_{ij}$ (\textbf{eligibility tangent}), as well as inter-trial sensitivities of weight matrices (\textbf{weight matrix tangent}), $\mathbf{U}_{k,\ell}^{(h)}$ (c.f. Appendix Sec.~\ref{apd:tangents}).
+
+
+\newpage
+
+%%%%%%%%%%
+
+%\section{Conclusion}
+%Learning produces long-lasting realignment of apical dendrite tuft responses to behaviorally relevant dimensions of a task.
+
+%\newpage
+
+
+
+%\acks{...}
+
+\bibliography{pmlr-sample}
+
+\appendix
+
+\section{Plasticity gradient with REINFORCE approximation}
+Following the REINFORCE estimator~\citep{williams1992simple}, we approximate the gradient of the expected reward by
+\begin{equation}\label{eq:app-1}
+\nabla_\theta \langle R \rangle = \left\langle  (R - \bar{R}) \; \nabla_\theta \log \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \right\rangle.
+\end{equation}
+This results from applying the log-derivative trick on the expectation of Eq.~\ref{eq:app-1}
+\begin{align*}
+\nabla_\theta \langle R \rangle 
+&=  \nabla_\theta \int \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \, R \, \de \boldsymbol{\Delta}\mathbf{W}  \\
+&= \int \nabla_\theta \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \, R \, \de \boldsymbol{\Delta}\mathbf{W}  \quad \,\,\,\, \quad \quad \quad \, \quad \text{\color{cadetblue}{(Leibniz integral rule)}} \\
+&= \int \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \, \frac{\nabla_\theta \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta)}{\pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta)} \, R \, \de \boldsymbol{\Delta}\mathbf{W}  \\
+&= \int \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \, \nabla_\theta \log \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \, R \, \de \boldsymbol{\Delta}\mathbf{W}  \quad \text{\color{cadetblue}{(log-derivative trick)}} \\
+&= \left\langle  R \, \nabla_\theta \log \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \right\rangle_{ \pi} \\
+&\approx \left\langle \underbracket[0.187ex]{(R - \bar{R})}_{\substack{\text{\color{carmine}{reward prediction}}\\[0.2ex]%
+                \text{\color{carmine}{error}} }} \, \nabla_\theta \log \pi(\boldsymbol{\Delta}\mathbf{W} \mid \theta) \right\rangle .
+\end{align*}
+In the last expression we have introduced the baseline reward $\bar{R}$ as a control variate~\citep{lemieux2014control} commonly used for variance reduction of the expectation.
+%carmine
+This heuristic uses the \textbf{reward prediction error} $\delta R = R - \bar{R}$ as a scaling factor for the direction of the update. This approximation assumes that $R$ is a smooth functional of $\mathbf{W}$ and that changes in $\theta$ affect $R$ primarily through their effect on the connectivity $\mathbf{W}$. 
+
+
+
+\section{Analysis of dynamics for each network}\label{apd:first}
+
+\paragraph{Numerical solver.}
+We located fixed points by solving for $\textbf{G}(\textbf{x})=\textbf{0}$ with
+\[
+\textbf{G}(\textbf{x}) = \textbf{x} - \mathbf{W} \phi(\textbf{x}) - \mathbf{W}_{\text{in}} \mathbf{u},
+\]
+using a damped Newton method. To avoid identifying duplicate fixed points, 
+we initialized from $200$ random initial conditions and discarded solutions 
+within a distance of  $\gamma \le 1e-5$ of one another. This resulted in a set of 
+unique fixed points per input condition. %We considered the following input conditions $\mathbf{u} = $
+
+\paragraph{Jacobian definition.}
+We linearized the dynamics at the vicinity of each fixed point $\mathbf{x}^\ast$.  
+The Jacobian is defined as
+\begin{equation}
+    \mathbf{J}(\textbf{x}^\ast) = -\mathbf{I}_N + \mathbf{W} \, \mathrm{diag}\!\left(1 - \phi^2(\textbf{x}^\ast)\right),
+    \label{eq:Jct}
+\end{equation}
+and governs the local flow $\dot {\delta \textbf{x}} = \mathbf{J} \, \delta \textbf{x}$. 
+
+\paragraph{Stability criteria.}
+A fixed point is linearly stable if 
+$\max \Re(\lambda(\mathbf{J})) < 0$. 
+
+\paragraph{Eigenmode analysis.}
+From the eigenvalues and eigenvectors of $J$, 
+we extracted several diagnostics:
+\begin{itemize}
+    \item \textbf{Time constants and frequencies:} 
+    Each mode with eigenvalue $\lambda = \beta + i\omega$ corresponds 
+    to a decay time $-\tfrac{1}{\beta}$ (if $\beta < 0$) and an oscillation frequency $\omega / 2\pi$.
+    \item \textbf{Non-normality:} Since the Jacobian eigenvectors are not orthogonal, small perturbations can have large transient effects even if all eigenvalue real parts are negative.
+    Thus, we quantified the departure from normality with the \textbf{Henrici index}
+    $\|\mathbf{J}\|^2_F - \sum_i |\lambda_i|^2$~\citep{murphy2009balanced,asllani2018structure}, which is indicative of transient amplification, where $\|\cdot\|_F$ stands for the Frobenius norm.
+    \item \textbf{Transient gain:} We measured $\max_t \|e^{\mathbf{J} t}\|_2$ 
+    on a grid of times $t$~\citep{christodoulou2022regimes, asllani2018topological}, capturing the degree of short-term amplification even when the dynamics are asymptotically stable.
+    \item \textbf{Readout alignment:} 
+    We computed the overlap of the corresponding readout vector $\mathbf{w}_{\text{out}}$ 
+    with the eigenvectors of $\mathbf{J}$, to identify which eigenmodes directly influence network output.
+    For each mode $i$, we characterise the alignment by
+\begin{equation}
+a_i = \bigl\|\langle \textbf{w}_{\text{out}}, \textbf{v}_i \rangle \bigr\|,
+\end{equation}
+where $\mathbf{v}_i$ are the normalized right eigenvectors of $J$. 
+Large $a_i$ values indicate that the corresponding $i$-th mode contributes strongly to the output. 
+In strongly non-normal systems we additionally verified projections using left--right biorthogonal eigenvectors.
+
+    \item \textbf{Susceptibility:} We computed the linear response 
+    $\mathbf{p} = (-\mathbf{J})^{-1} \mathbf{W}_{\text{in}}$,
+    quantifying the steady-state sensitivity of each neuron to perturbations in the input.
+\end{itemize}
+
+
+\section{Tangent-propagation through learning}\label{apd:tangents}
+
+\paragraph{Tangent-propagation through single trial time.}
+To be able to compute the gradient of the weight updates with respect to the plasticity parameters, we propagate the gradients of the within-trial pre-activations $\mathbf{x}^t$, $\boldsymbol{\chi}_{k,\ell}^t \in \mathcal{R}^N$ (\textbf{state tangent}), the pre-activation trace $\bar{\mathbf{x}}^t$, $\boldsymbol{\psi}_{k,\ell}^t \in \mathcal{R}^N$ (\textbf{trace tangent}), and of the eligibility traces of each synaptic pair $ij$, $e^t_{ij}$, ${[\mathbf{z}^t_{k,\ell}]}_{ij}$ (\textbf{eligibility tangent}).
+Thus we define the 
+following within-trial tangents (sensitivities) with respect to the plasticity parameter $\theta_{k,\ell}$
+\begin{align}\label{eq:single_sensitivities_1}
+\boldsymbol{\chi}_{k,\ell}^t \dot{=} \frac{\partial \mathbf{x}^t}{\partial\theta_{k,\ell}},\qquad
+\boldsymbol{\psi}_{k,\ell}^t \dot{=} \frac{\partial \mathbf{\bar{x}}^t}{\partial\theta_{k,\ell}},\qquad
+\mathbf{z}_{k,\ell}^t \dot{=} \frac{\partial \mathbf{e}^t}{\partial\theta_{k,\ell}}.
+\end{align}
+We assume that the reward and baseline reward $R$ and $\bar{R}$ are not directly related to the plasticity parameters $\theta_{k,\ell}$, and thus we treat these variables and the reward prediction error as $\theta$-independent.
+
+For convenience we define $\alpha=\mathrm{d}t/\tau$, and denote the derivative of the single neuron activation function with $\mathrm{d}\phi(x)=\phi^{\prime}(x)\,\mathrm{d}x$. The forward equations for these sensitivity parameters are 
+\begin{align}
+\boldsymbol{\chi}_{k,\ell}^{\,t+1} &= \boldsymbol{\chi}_{k,\ell}^{\,t} + \alpha\Big(-\boldsymbol{\chi}_{k,\ell}^{\,t} + \mathbf{W}^{(h)}\,\left(\text{diag}({\phi^{\prime}(\mathbf{x}^{t})})\cdot \boldsymbol{\chi}_{k,\ell}^{\,t}\right)+ \mathbf{U}_{k,\ell}^{(h)}\, \mathbf{r}^{t}\Big) \nonumber\\
+\boldsymbol{\psi}_{k,\ell}^{\,t+1} &= \alpha_x\,\boldsymbol{\psi}_{k,\ell}^{\,t} + (1-\alpha_x)\,\boldsymbol{\chi}_{k,\ell}^{\,t+1},\nonumber\\[2pt]
+\mathbf{z}_{k,\ell}^{\,t+1} &= \mathbf{z}_{k,\ell}^{\,t} + \mathrm{d}t
+{ \;(\mathbf{\Delta x}^t)^\ell\otimes \left(\mathbf{r}^t\right)^k}\\
+&\quad + \mathrm{d}t\!\sum_{\kappa,\lambda}\!\Big[
+{\theta_{\kappa,\lambda}\,\lambda\,(\mathbf{\Delta x}^t)^{\lambda-1}(\boldsymbol{\psi}_{k,\ell}^{\,t}-\boldsymbol{\chi}_{k,\ell}^{\,t+1})\otimes \left(\mathbf{r}^{\,t}\right)^\kappa}
++ {\theta_{\kappa,\lambda}\,(\mathbf{\Delta x}^{t})^{\lambda}\otimes \kappa\,\left(\mathbf{r}^{t}\right)^{\kappa-1}\,(\text{diag}({\phi^{\prime}(\mathbf{x}^{t})})\cdot  \boldsymbol{\chi}_{k,\ell}^t)}
+\Big], \nonumber
+\end{align}
+where $\text{diag}(\mathbf{y})$ denotes the matrix with $\mathbf{y}$ in the main diagonal, $\otimes$ denotes the outer product, while
+\begin{equation}
+\mathbf{U}_{k,\ell}^{(h)}\,\dot{=}\,\frac{\partial \mathbf{W}^{(h)}}{\partial\theta_{k,\ell}}
+\end{equation}
+stands for the inter-trial \textbf{weight matrix tangent}. The initial conditions for the three sensitivity parameters are zero at the beginning of each trial $\boldsymbol{\chi}_{k,\ell}^0 = \mathbf{0}$, $\boldsymbol{\psi}_{k,\ell}^0 = \mathbf{0}$, and $\mathbf{z}_{k,\ell}^0 = \mathbf{0} $.
+
+
+
+
+
+At the end of each trial $h$ we have
+\begin{equation}
+\; \frac{\partial \boldsymbol{\mu}^{(h)}}{\partial \theta_{k,\ell}} = \eta\,\delta R^{(h)}\, \mathbf{z}_{k,\ell}^{T_h} \; .
+\end{equation}
+
+\paragraph{Propagating sensitivities through-learning (across trials).}
+The derivative of the weights of trial $h+1$ w.r.t. $\theta_{k,\ell}$ accumulates the across trial sensitivities
+\begin{equation}\label{eq:weight_sensitivities_1}
+ \mathbf{U}_{k,\ell}^{(h+1)} \;=\; \mathbf{U}_{k,\ell}^{(h)} + \frac{\partial \boldsymbol{\mu}^{(h)}}{\partial \theta_{k,\ell}},\qquad \text{with   } \mathbf{U}_{k,\ell}^{(0)}=0.
+\end{equation}
+This sensitivity $\mathbf{U}_{k,\ell}^{(h)}$ couples back into the state tangent through the $\mathbf{U}_{k,\ell}^{(h)}\,\mathbf{r}^t$ term, which captures how $\theta_{k,\ell}$ affects later trials through the modified weights of earlier trials.
+
+
+\subsection{Validation of weight updates gradients wrt plasticity parameters}
+To validate the gradients wrt plasticity parameters obtained through forward mode differentiation, we compare both single-trial and multi-trial gradients (for $H=500$ trials) obtained with finite differences (FD) to those computed through forward mode differentiation (FM). To avoid observing discrepancies between the two versions of the gradients, we employ the same noise and environment inputs in all simulations. For this experiment we considered only $\theta_{3,3}=1$ nonzero, while all other entries of $\boldsymbol{\Theta}$ were zero. For the finite difference calculation, we run the training with $\theta + \epsilon$ and $\theta - \epsilon$ for $\epsilon=10^{-4}$ and approximate the gradient of the weight update with respect to the plasticity parameter as
+\begin{equation}
+\frac{\de \boldsymbol{\Delta} \mathbf{W}}{\de \theta_{k,\ell}}\approx\frac{\boldsymbol{\Delta} \mathbf{W}^+ \left(\theta_{k,\ell} + \varepsilon \right) - \boldsymbol{\Delta} \mathbf{W}^-\left(\theta_{k,\ell} - \varepsilon \right)}{2\varepsilon}.
+\end{equation}
+The resulting two versions of the gradients are in very close agreement throughout all $500$ trials (Fig.~\ref{app_fig:vali_eli}).
+
+\begin{figure}[h!]
+\includegraphics[width=\linewidth]{FORW-MODvalidation_multi_trial_dW_dtheta_multi_500.pdf}
+\caption{\textbf{Validation of forward-mode gradient (FM) computation for the weight update wrt plasticity parameters $\theta$ against numerical gradients (FD).} \textbf{a.} Comparison of numerical gradient for per-trial weight update $\boldsymbol{\Delta} \mathbf{W}^{(h)}$ wrt plasticity parameter $\theta_{3,3}$ against the gradient obtained through forward mode differentiation for trials $1, 250, 500$ .  \textbf{b.} Comparison of cumulative gradient computed over $500$ trials for the weight update wrt plasticity parameters obtained numerically and through forward mode differentiation. The forward-mode differentiation provides an exact estimation of the plasticity update gradients.
+\textbf{c.} Relative gradient error per trial computed as $\| {\frac{\de \boldsymbol{\Delta} \mathbf{W}}{\de \theta}}^{FM}  -{\frac{\de \boldsymbol{\Delta} \mathbf{W}}{\de \theta}}^{FD} \|  /  \| {\frac{\de \boldsymbol{\Delta} \mathbf{W}}{\de \theta}}^{FD} \|$. }
+\label{app_fig:vali_eli}
+\end{figure}
+
+
+\end{document}
