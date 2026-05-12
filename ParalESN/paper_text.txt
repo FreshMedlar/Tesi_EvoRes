@@ -1,0 +1,1167 @@
+ParalESN: Enabling parallel information processing in Reservoir Computing
+
+Matteo Pinna * 1 Giacomo Lagomarsini * 1 Andrea Ceni 1 Claudio Gallicchio 1
+
+arXiv:2601.22296v1 [cs.LG] 29 Jan 2026
+
+Abstract
+
+a non-linear recurrent reservoir and training only a linear
+readout, RC offers favorable training efficiency, strong performance on temporal processing tasks, and intriguing connections to both neuroscience and dynamical systems theory. These properties have led to its success in a wide range
+of domains, from speech recognition to chaotic signal prediction. Despite these strengths, RC faces the same problem of traditional, fully-trainable Recurrent Neural Networks (RNNs): the input signal has to be processed sequentially, which makes training slow and not parallelizable. In
+an attempt to improve the efficiency of RC, structured operators have been investigated (Rodan & Tino, 2011; Dong
+et al., 2020; D’Inverno & Dong, 2025). A particularly
+active research area involves exploring RC implementations in hardware implementations (Gallicchio & Soriano,
+2025). An important theoretical insight is that even linear
+reservoirs, provided that the readout is expressive enough,
+are universal approximators in the class of fading memory
+filters (Grigoryeva & Ortega, 2018a;b), thus being able to
+represent well arbitrary input-output dynamics.
+
+Reservoir Computing (RC) has established itself
+as an efficient paradigm for temporal processing.
+However, its scalability remains severely constrained by (i) the necessity of processing temporal data sequentially and (ii) the prohibitive memory footprint of high-dimensional reservoirs. In
+this work, we revisit RC through the lens of
+structured operators and state space modeling
+to address these limitations, introducing Parallel
+Echo State Network (ParalESN). ParalESN enables the construction of high-dimensional and
+efficient reservoirs based on diagonal linear recurrence in the complex space, enabling parallel processing of temporal data. We provide a
+theoretical analysis demonstrating that ParalESN
+preserves the Echo State Property and the universality guarantees of traditional Echo State Networks while admitting an equivalent representation of arbitrary linear reservoirs in the complex
+diagonal form. Empirically, ParalESN matches
+the predictive accuracy of traditional RC on time
+series benchmarks, while delivering substantial
+computational savings. On 1-D pixel-level classification tasks, ParalESN achieves competitive
+accuracy with fully trainable neural networks
+while reducing computational costs and energy
+consumption by orders of magnitude. Overall,
+ParalESN offers a promising, scalable, and principled pathway for integrating RC within the
+deep learning landscape.
+
+In this work, we address limitations of classical RC by
+introducing Parallel Echo State Networks (ParalESN), a
+novel class of efficient untrained RNNs with diagonal linear recurrence in the complex space, where the recurrence
+can be parallelized via associative scan. Fig. 1 graphically highlights the proposed model. Our approach rethinks
+reservoir construction through the lens of structured operators. By combining the dynamical richness of RC with the
+linear recurrence from Linear Recurrent Unit (LRU) (Orvieto et al., 2023), we bridge a gap between classical dynamical systems-inspired learning and contemporary large-scale
+modeling.
+The remainder of this work is organized as follows. Section 2 discusses related works. Section 3 presents the proposed approach, ParalESN. Section 4 presents our theoretical analysis. Section 5 presents the experiments. Finally,
+Section 6 concludes the paper. In the Appendix, we provide mathematical proofs, definitions, and additional experiments. See Appendix A for a table of contents.
+
+1. Introduction
+Reservoir Computing (RC) has emerged as a simple yet
+powerful paradigm for harnessing the rich dynamics of recurrent systems for learning and prediction (Nakajima &
+Fischer, 2021; Lukoševičius & Jaeger, 2009). By fixing
+*
+Equal contribution. 1 Department of Computer Science,
+University of Pisa, Italy.
+Correspondence to: Matteo
+Pinna <matteo.pinna@di.unipi.it>, Giacomo Lagomarsini <giacomo.lagomarsini@phd.unipi.it>.
+
+2. Related works
+Reservoir Computing. Reservoir Computing (RC) (Verstraeten et al., 2007; Nakajima & Fischer, 2021) is a pop-
+
+Preprint. February 2, 2026.
+
+1
+
+ParalESN: Enabling parallel information processing in Reservoir Computing
+
+(associative scan)
+all time steps in the
+recurrence may be computed
+in parallel
+
+Reservoir Mixer
+
++
+
++
+
+Reservoir
+
+Mixer
+
+Untrained
+Readout
+Trained
+
+layers
+
+Figure 1. Architectural organization of the proposed ParalESN. The model may have multiple blocks consisting of two components: (i)
+a linear reservoir and (ii) a non-linear mixing layer. The first block processes the external input as in a traditional shallow architecture.
+(ℓ−1)
+Subsequent blocks process the output of the previous block’s mixing layer, zt
+. The structure of the reservoir (in blue) includes
+(ℓ)
+(ℓ)
+a diagonal, complex-valued transition matrix Λh and a dense complex-valued input weight matrix Win . The main branch and the
+temporal residual connections are scaled by a positive coefficient τ and 1 − τ , respectively. The mixing layer (in purple) is used to
+introduce non-linearity in the model’s dynamics and to mix the components of the reservoir states at each time step. The readout (in
+orange) is the only trainable component in the system. See Section 3 for details.
+
+ular framework for the design of efficient untrained Recurrent Neural Networks (RNNs), developed to address the instabilities of training RNNs (Bengio et al., 1994; Glorot &
+Bengio, 2010; Pascanu et al., 2013). An RC model consists
+of two main components: (i) a high-dimensional recurrent
+layer, called reservoir, that is randomly initialized and then
+left untrained, and (ii) a trainable readout layer, that may
+be trained via lightweight closed-form solutions. Therefore, by design, RC models bypass backpropagation and
+related vanishing/exploding gradients, and can be trained
+exceptionally fast in a single forward pass.
+
+butions is also popular (Verstraeten et al., 2007). The entries of Wh are randomly sampled from a uniform distribution over [−1, 1] and then rescaled to have a desired spectral radius ρ1 . In practical applications, the spectral radius
+is generally constrained to be smaller than 1.
+The final output is retrieved through the linear readout:
+yt = Wout ht + bout .
+
+(2)
+
+where yt ∈ RNout denotes the network output at time step t,
+and Wout ∈ RNout ×Nh and bout ∈ RNout denote the readout
+weight matrix and bias vector, respectively. The readout is
+typically optimized via lightweight closed-form solutions,
+e.g. ridge regression or least squares methods.
+
+Echo State Networks (ESNs) (Jaeger et al., 2007) established themselves as one of the most successful instance of
+RC models. ESNs dynamics can be defined as follows:
+
+The model’s state update function defined in (1) could depend, in principle, from the initial point h0 . This leads to
+non-deterministic behaviors, i.e. the impossibility to determine the state solely from the inputs. To avoid that, the
+reservoir in ESNs is initialized subject to the Echo State
+Property (ESP) (Yildiz et al., 2012), a useful stability condition for guiding ESN initialization. We say that a discrete
+time dynamical system defined by the transition function
+F (h, x) satisfies the ESP if the states asymptotically depends only on the system’s inputs. In other words, for any
+
+ht = (1 − τ )ht−1 + τ σ(Wh ht−1 + Win xt + b). (1)
+where ht ∈ RNh and xt ∈ RNin are, respectively, the state
+and the external input at time step t. The transition matrix
+is denoted as Wh ∈ RNh ×Nh , the input weight matrix is
+denoted as Win ∈ RNh ×Nin , b ∈ RNh denotes the bias vector, σ denotes an element-wise applied non-linearity, and
+τ ∈ (0, 1] denotes the leaky rate hyperparameter. The entries of the matrix Win and b are generally sampled randomly from a uniform distribution (Gallicchio et al., 2017;
+Ceni & Gallicchio, 2024) over [−ωin , ω in ] and [−ωb , ω b ],
+respectively. Sampling their entries from Gaussian distri-
+
+1
+The spectral radius of a matrix A, denoted ρ(A), is defined
+as the largest among the lengths of its eigenvalues.
+
+2
+
+ParalESN: Enabling parallel information processing in Reservoir Computing
+
+two initial points h0 and h′0 , then
+lim ∥F (ht−1 , xt ) − F (h′t−1 , xt )∥2 = 0.
+t→∞
+
+et al., 2021). SSMs start from the idea of a linear state
+space dynamical system, and devise initialization and discretization strategies that help improve memory capacity of
+the system. Linear recurrence is easily parallelizable (see
+e.g. Martin & Cundy, 2018), greatly improving training and
+inference efficiency of this family of models. Structured
+SSMs such as S4 and S5 (Gu et al., 2021; Smith et al.,
+2022) demonstrated how linear recurrence, along with a
+careful initialization based on HiPPO matrices (Gu et al.,
+2020), can enhance long memory propagation on long sequence tasks. Building on these foundations, Mamba (Gu
+& Dao, 2024; Dao & Gu, 2024) proposes a selective architecture that allows to change the dynamic based on its
+inputs. These advances position SSMs as contenders to
+transformers in sequence modeling, particularly in tasks
+demanding long memory retention.
+
+(3)
+
+Several ESN variants lay their foundation at the intersection of the RC and DL frameworks. In particular, Deep
+Echo State Networks (DeepESNs) (Gallicchio et al., 2017)
+generalize the concept of shallow ESNs towards deep architectural constructions, where multiple untrained reservoirs are stacked on top of each other. The increased feedforward depth has been shown to provide advantageous architectural bias relative to shallow ESNs. More recently,
+Residual Echo State Networks (ResESNs) (Ceni & Gallicchio, 2024) introduced orthogonal residual connections
+along the temporal dimension to enhance long-term information processing capabilities. Other works have explored
+structured transforms to improve the efficiency of RC, including Simple Cycle Reservoir (SCR) (Rodan & Tino,
+2011), where the transition matrix employs a fixed ring
+topology, and Structured Reservoir Computing (Structured
+RC) (Dong et al., 2020), where the transition matrix consists of a composition of Hadamard and diagonal matrices.
+
+Linear recurrent unit. Linear recurrent Unit (LRU) (Orvieto et al., 2023) successfully applied linear recurrence to
+general RNNs, demonstrating that it is possible to deviate from the strict initialization and parametrization rules
+of SSMs, while retaining their impressive performance.
+Rather than initializing matrices using HiPPO theory as
+standard SSMs, LRU employs a diagonal transition matrix,
+whose eigenvalues are initialized inside the unitary complex disk, using a de-coupled parametrization of their magnitude and phase. In particular, the magnitude is chosen in
+an interval [rmin , rmax ], which allows a finer control over
+stability and memory capacity of the model. The linear,
+diagonal structure reduces recurrent updates to parallelizable element-wise operations, and the initialization strategy
+makes the architecture more stable for longer sequences.
+
+Universality of linear reservoirs. ESP guarantees the universality of the reservoir system in approximating fading
+memory filters (Grigoryeva & Ortega, 2018a). Provided
+that the ESP holds, similar universality results have also
+been proven for reservoirs characterized by linear dynamics, when combined with non-linear readouts that universally approximate functions f : CNh → CNy (Grigoryeva
+& Ortega, 2018b; Gonon & Ortega, 2020). Therefore, linear recurrence ESNs, in combination with non-linear readouts, can approximately arbitrarily well any time-invariant
+causal filter with the fading memory property.
+
+3. ParalESN
+
+Transformers. Transformers are the de-facto standard architecture for sequence modeling, managing to replace recurrent models on real-world tasks since their introduction
+in (Vaswani et al., 2017). Differently from RNNs, transformers are a feedforward architecture, and employ selfattention, enabling access to every position of the sequence
+at any time. This allows for great parallelization and modeling capacity, but comes at a cost of a quadratic complexity in sequence length, making scaling to long contexts
+challenging. To address this issue, many variants to the
+naive self-attention aiming to lower the computational and
+memory burden while maintaining expressivity have been
+proposed (Tay et al., 2022).
+
+Inspired by the success of SSMs, we design a more scalable and efficient reservoir architecture, which we call ParalESN. ParalESN improves upon previous RC models by
+employing a linear diagonal recurrence, similar to that of
+LRU, followed by a mixing function that combines reservoir states. As is standard in the RC paradigm, only the
+readout function is trainable. We also explore a deep variant of ParalESN, which we denote ParalESN (deep). See
+Fig. 1 for a graphical representation of the architecture.
+(0)
+
+Let zt = xt denote the input to the first layer. The reservoir dynamics at layer ℓ are described by:
+(ℓ)
+
+(ℓ)
+
+ht =(1 − τ (ℓ) ) ht−1
+
+
+(ℓ) (ℓ)
+(ℓ) (ℓ−1)
++ τ (ℓ) Λh ht−1 + Win zt
++ b(ℓ) ,
+
+State Space Models. Besides training instabilities, another
+major drawback of stateful sequence models like RNNs is
+that the input needs to be processed sequentially, greatly
+limiting the parallelization capabilities of these type of
+architectures on modern accelerators. One of the most
+promising approaches for the parallelization of recurrent
+models is that of (Deep) State Space Models (SSMs) (Gu
+
+(4)
+
+where superscript (ℓ) denotes layer-specific hyperparameters and weights. For each time step t ∈ {1, . . . , T },
+(ℓ)
+xt ∈ RNin is the external input, ht ∈ CNh is the reservoir
+(ℓ)
+Nh
+state, and zt ∈ R is the hidden state after the mixing
+3
+
+ESN (deep)
+ESN
+ParalESN (deep)
+ParalESN
+
+101
+100
+10 1
+
+Accuracy (%)
+
+Recurrence time (s)
+
+ParalESN: Enabling parallel information processing in Reservoir Computing
+
+10 2
+44
+
+45
+
+46
+Sequence length
+
+47
+
+48
+
+90
+
+OOM
+
+80
+
+OOM
+
+(100, 1K)
+
+(1K, 10K)
+(10K, 100K)
+(Reservoir size, Trainable params)
+
+(100K, 1M)
+
+Figure 2. (left) Time required to perform the recurrence in ParalESN and traditional ESNs for increasing sequence lengths, assuming
+128 recurrent neurons and 5 layers for deep configurations. ParalESN scales logarithmically with sequence length, whereas traditional
+ESNs scale linearly. (right) Scaling ParalESN and traditional ESNs to high-dimensional reservoirs on the sMNIST task. Traditional
+ESNs run out-of-memory (OOM) at approximately 100K reservoir neurons, while ParalESN fit into memory due to the reduced memory
+footprint of their diagonal transition matrices.
+(ℓ)
+
+step. The matrix Λh ∈ CNh ×Nh is a diagonal transition
+matrix, b(ℓ) ∈ CNh is the bias vector, and τ (ℓ) ∈ (0, 1]
+is the leaky rate. Since the recurrence is linear, the leaky
+integration can be partially absorbed into the transition matrix. Accounting for leakage, the effective transition matrix
+becomes Λ¯(ℓ) h = (1 − τ (ℓ) )I + τ (ℓ) Λ(ℓ) h , where I is the
+(1)
+identity matrix. The input weight matrix Win ∈ CNh ×Nin
+is dense for the first layer, mapping the external input to
+the hidden dimension. For subsequent layers, the input
+(ℓ>1)
+weight matrix Win
+∈ CNh ×Nh employs the following
+ring topology (Rodan & Tino, 2011; Verzelli et al., 2020;
+Tino, 2020; Pinna et al., 2025) to reduce memory overhead:
+
+
+0
+w2
+
+
+(ℓ>1)
+Win
+=0
+ ..
+ .
+
+0
+0
+w3
+..
+.
+
+···
+···
+···
+..
+.
+
+0
+0
+0
+..
+.
+
+0
+
+0
+
+···
+
+wN h
+
+
+w1
+0
+
+0
+,
+.. 
+. 
+0
+
+the hidden state, which would otherwise evolve independently due to the diagonal structure of the recurrence. The
+mixing function is defined as:
+ 
+
+(ℓ)
+(ℓ)
+(ℓ)
+(ℓ)
+(ℓ)
+(ℓ)
+zt = fmix (ht ) = tanh ℜ Wmix ∗ ht + bmix ,
+(6)
+(ℓ)
+k
+where ∗ denotes the convolution operator, Wmix ∈ C is a
+(ℓ)
+1-D kernel of size k (ℓ) , bmix ∈ C is a scalar bias, and ℜ(·)
+extracts the real part. The kernel slides across the hidden
+(ℓ)
+dimension of ht ∈ CNh with same-padding, producing
+an output of identical dimension. We employ a 1-D convolution rather than a dense matrix, to reduce the memory
+footprint of the mixing function. The same kernel is shared
+across all time steps, requiring only k + 1 parameters regardless of sequence length or hidden size. The kernel and
+bias entries are sampled randomly from a uniform distribu(ℓ)
+(ℓ)
+(ℓ)
+(ℓ)
+tion over [-ωmix , ωmix ] and [-ωmixb , ωmixb ], respectively.
+
+(5)
+
+The readout layer aggregates the mixed states from all L
+layers:
+(1)
+(L)
+yt = freadout (zt , . . . , zt )
+(7)
+
+The matrix in (5) shifts the input vector and then applies
+an element-wise scaling. Consequently, we only store a
+Nh -dimensional vector of scaling coefficients, significantly
+reducing the memory footprint in deeper layers. The entries of the input weight matrices are initialized by sampling the real and imaginary parts independently from a
+uniform distribution
+pover [−1, 1] and then scaling each row
+i of the matrix by 1 − |λi |2 , where λi is the corresponding diagonal element (eigenvalue) of the transition matrix
+Λ¯(ℓ) h . The bias vectors are sampled from a uniform dis(ℓ)
+tribution and scaled by hyperparameter ωb . The diagonal
+elements of the transition matrix are initialized to control
+the eigenvalue distribution, with spectral radii sampled uni(ℓ)
+(ℓ)
+(ℓ)
+(ℓ)
+formly from [ρmin , ρmax ] and phases from [θmin , θmax ], form(ℓ)
+ing complex eigenvalues ρ(ℓ) eiθ .
+
+For classification tasks, only the final time step is used, y =
+(1)
+(L)
+freadout (zT , . . . , zT ).
+Fig. 2 graphically demonstrates ParalESN’s speed advantage over traditional ESNs with respect to sequence length
+(left) and its ability to scale to high-dimensional reservoirs
+(right). ParalESN’s recurrence time scales logarithmically
+with sequence length, rather than linearly, due to its ability
+to parallelize the recurrence. Note that even the deep configuration of ParalESN is consistently faster than the shallow configuration of ESN, despite consisting of a higher
+number of reservoir layers. Additionally, by employing a
+diagonal transition matrix, ParalESN can scale to higherdimensional reservoirs compared to traditional RC, which
+generally employs dense Nh × Nh transition matrices. See
+Appendix B for a computational complexity analysis of
+
+The mixing function fmix introduces non-linearity into the
+model and enables interaction among the components of
+4
+
+ParalESN: Enabling parallel information processing in Reservoir Computing
+
+ParalESN and other RC approaches. ParalESN achieves
+lower time complexity, reducing it from linear to logarithmic with respect to sequence length, and the memory footprint of its parameters doesn’t scale quadratically with respect to the hidden size (see Table 5).
+
+now show that an ParalESN is as expressive as a ESN
+with linear recurrence and any arbitrary transition matrix
+Wh ∈ CNh ×Nh and MLP readout.
+Proposition 4.2. Consider an ESN with linear recurrence
+and a 1-layer MLP readout, defined by
+(
+ht = Wh ht−1 + Win xt
+(10)
+yt = Wout (σ(Wh ht )) = M LP (ht )
+
+4. Theoretical Analysis
+In this section, we derive a simple condition for the ESP to
+hold. The ESP is necessary to prove a result of universality for the class of linear reservoir models (Grigoryeva &
+Ortega, 2018a).
+
+where Wh , Win are matrices of appropriate sizes. Then,
+there exists a ParalESN with MLP readout, defined by (8)
+and (9) with fout being another MLP, such that for any
+given input, the two models produce the same output.
+
+We consider a one-layer ParalESN. The sequence of hidden
+states produced by the model given a sequence of inputs
+{x1 , . . . , xT } ∈ (CNin )T and a starting point h0 ∈ CNh is
+(y0 , ..., yT ), with
+(
+h0
+ht =
+Λ̄h ht−1 + τ (Win xt + b)
+yt = fout (ht ),
+
+if t = 0
+oth.
+
+The proposition can be proven by diagonalizing the full
+matrix Wh . The proof is given in Appendix C.2.
+By Proposition 4.2 and results on equivalent expressiveness
+between ESNs with linear recurrence and standard ESNs,
+we can deduce that ParalESN and standard ESNs (both
+with the ESP) are equivalently expressive. We explicitly
+state this fact in the following corollary.
+
+(8)
+(9)
+
+Corollary 4.3. The class of ParalESN models with the ESP,
+endowed with an MLP readout, is universal in the family of
+fading memory filters.
+
+where fout is the readout function. Because the recurrence is linear, the readout function must be non-linear
+to preserve expressivity. This definition apparently differs
+slightly from equations (4), (6), and (7), but since training
+does not come into play in this section, we can incorporate
+fmix and freadout in a single function fout .
+
+In practice, in our experiments, the MLP readout is often
+decomposed into two layers: the first layer, together with
+the non-linearity, is treated as the fixed mixing function, the
+last layer is treated as the trainable readout.
+
+4.1. Echo State Property
+
+5. Experiments
+
+As a first step of the theoretical analysis, we show that it
+is easy to derive a simple condition for the ESP to hold in
+the case of linear ESN of (8). The same condition on the
+spectral radius that is necessary for the ESP of ESNs (see,
+e.g., (Jaeger & Haas, 2004)) is also sufficient in our case.
+Moreover, in the case of a diagonal transition matrix, we
+can directly control the spectral radius by examining the
+largest diagonal value in modulus.
+Theorem 4.1 (Sufficient and necessary conditions for the
+ESP). A ParalESN has the ESP if and only if the diagonal
+elements λ1 , ..., λNh of the transition matrix Λ̄h are such
+that for each i, |λi | < 1, where | · | is the complex modulus.
+
+We empirically validate the performance of the proposed
+approach on time series regression and classification tasks
+(see also Appendix E), and with respect to traditional RC
+and fully-trainable sequence models. As our fully-trainable
+models, we consider a LSTM, a standard Transformer
+(Vaswani et al., 2017), a Linear Recurrent Unit (LRU)
+(Orvieto et al., 2023) 2 , and Mamba (Gu & Dao, 2024) 3
+to cover a wide range of model classes, including recurrent neural networks, attention-based neural networks, and
+deep state space models, respectively. See Appendix F for
+details on the experimental setting and Appendix G for experiments on hyperparameters’ sensitivity and comparison
+with other structured RC approaches.
+
+The proof is given in Appendix C.1.
+4.2. Expressivity of ParalESN
+
+Comparison with respect to traditional RC. Fig. 3 compares ParalESN provides with respect to traditional RC
+from performance and efficiency perspectives. The left
+panels presents the trade-off between performance and efficiency, the right panel presents a critical difference plot
+ranking models based on their overall performance. We
+
+An ESN with linear recurrence and MLP readout and the
+ESP property is universal in the family of fading memory filters, and in particular it is as powerful as non-linear
+ESNs, that have the same property (Grigoryeva & Ortega,
+2018a;b) (see also Appendix D for definitions on fading
+memory filters). We have stated the conditions for ParalESN to have the ESP property in Theorem 4.1. We
+
+2
+3
+
+5
+
+Code from github.com/NicolasZucchet/minimal-LRU.
+Code from github.com/state-spaces/mamba.
+
+1.0
+0.8
+
+ESN (deep)
+
+high perf.
+& high eff.
+
+Normalized performance score
+
+ParalESN: Enabling parallel information processing in Reservoir Computing
+
+ParalESN (deep)
+
+4
+
+0.6
+0.4
+0.2
+0.0
+
+ParalESN
+low perf.
+& low eff.
+0.0
+
+ESN
+0.2
+0.4
+0.6
+0.8
+Normalized efficiency score
+
+ESN
+ParalESN
+
+3
+
+2
+
+3.5455
+2.7500
+
+1
+
+1.7045
+2.0000
+
+ParalESN (deep)
+ESN (deep)
+
+1.0
+
+Figure 3. (left) Analysis of the trade-off between performance (error for regression tasks and accuracy for classification tasks) and
+efficiency (training time) for ParalESN and traditional ESNs across all considered benchmarks. For each model, we compute the
+percentage improvement over the ESN baseline for each task. The normalized scores are then obtained via min-max normalization of
+these average improvements, mapping them to a [0, 1] scale, where 0 corresponds to the worst-performing model and 1 to the bestperforming one. Overall, ParalESN and ParalESN (deep) outperform their counterparts while being more efficient. (right) Critical
+difference plot computed via a Wilcoxon test (Demšar, 2006), showing the average rank (lower is better). Models are ranked based
+on their overall performance across all benchmarks. Cliques (solid lines) connect models for which there is no statistically significant
+difference in performance. On average, ParalESN (deep) is the top-performing model.
+
+putational efficiency perspective. In all benchmarks, ParalESN trains an entire order of magnitude faster, except
+for Lorenz25 and Lorenz50, where the relatively small sequence length reduces the advantage of being able to parallelize the recurrence. Observe that even ParalESN (deep),
+despite consisting of multiple reservoir layers, trains faster
+than a traditional, shallow ESN consisting of just one layer.
+Indeed, while the readout layer is trained via Ridge regression in both cases, the time required to perform the recurrence through the untrained reservoir is significantly lower
+in the proposed approach compared to traditional ESNs,
+thanks to being able to process the sequence in parallel.
+
+observe that ParalESN is both more accurate and more efficient with respect to its counterpart (shallow or deep). In
+particular, ParalESN (deep), despite consisting of multiple
+reservoir layers, is able to stay competitive in terms of recurrence speed with respect to a shallow ESN. Additionally, ParalESN outperforms its shallow counterpart by a
+statistically significant margin. Although there is not statistically significant difference between the performance of
+ParalESN (deep) and ESN (deep), the former is the topperforming model while being considerably more efficient.
+5.1. Time series regression
+Memory-based tasks are designed to assess the model’s
+ability to recall delayed versions of the input, while forecasting tasks evaluate the model’s ability to predict future time steps. We consider MemCap (Jaeger, 2001),
+ctXOR (Verstraeten et al., 2010), and SinMem (Inubushi
+& Yoshimura, 2017) in our memory-based benchmark.
+For our forecasting benchmark, we consider Lorenz96
+(Lorenz, 1996), Mackey-Glass (MG) (Jaeger & Haas,
+2004), NARMA, and a selection of real-world time series forecasting tasks from (Zhou et al., 2021), including
+ETTh1, ETTh2, ETTm1, and ETTm2.
+
+5.2. Time series classification
+The time series classification benchmark consists of a selection of tasks from the UEA & UCR repository (Bagnall
+et al., 2018; Dau et al., 2019). For 1-D pixel-level classification, we consider two variations of the MNIST dataset
+(LeCun, 1998): (i) sequential MNIST (sMNIST), where
+pixels are flattened into a one-dimensional vector, and (ii)
+permuted sequential MNIST (psMNIST), where on top of
+the flattening a random permutation is applied to the pixels.
+Discussion. Tables 3 and 4 present test set results on time
+series classification tasks from the UEA & UCR repository and on sMNIST and psMNIST, respectively. Fig. 5 visualizes the trade-off between performance and efficiency
+among all models for the MNIST benchmarks. On time series classification, ParalESN achieves higher test accuracy
+compared to a shallow ESN: +27.9% on Blink, +3.7% on
+FaultDetectionA, +7.6% on FordA, +5.7% on FordB, and
+
+Discussion. Table 1 and Table 2 present the test set results on memory-based and forecasting tasks, respectively.
+Fig. 4 graphically compares the training time of ParalESN
+to that to traditional ESNs. Our experiments demonstrate
+that ParalESN can achieve comparable results to traditional
+RC across a wide range of time series regression benchmarks, while offering exceptional advantages from a com-
+
+6
+
+ParalESN: Enabling parallel information processing in Reservoir Computing
+Table 1. Test set results of memory-based tasks, assuming 128 recurrent neurons for each model. The best result is highlighted in bold.
+M EM C AP (↑)
+
+·10−1
+CT XOR5 (↓)
+
+·10−1
+CT XOR10 (↓)
+
+·10−1
+S IN M EM 10 (↓)
+
+·10−1
+S IN M EM 20 (↓)
+
+ESN
+ESN (deep)
+
+50.6±1.6
+56.8±1.3
+
+3.6±0.1
+3.4±0.2
+
+7.7±0.6
+5.2±1.0
+
+3.6±0.1
+1.2±0.1
+
+3.7±0.1
+1.6±0.1
+
+ParalESN
+ParalESN (deep)
+
+114.5±1.4
+125.0±0.2
+
+3.9±0.1
+3.6±0.1
+
+8.2±0.2
+5.6±0.4
+
+3.7±0.0
+1.0±0.2
+
+3.7±0.0
+2.5±0.4
+
+M EMORY- BASED
+
+Table 2. Test set results of forecasting tasks, assuming 128 recurrent neurons for each model. The best result is highlighted in bold.
+F ORECASTING
+
+·10−2
+L Z 25 (↓)
+
+·10−2
+L Z 50 (↓)
+
+·10−4
+MG (↓)
+
+·10−2
+MG84 (↓)
+
+·10−2
+N10 (↓)
+
+·10−2
+N30 (↓)
+
+·10−1
+(↓)
+ETT H 1
+
+·10−1
+(↓)
+ETT H 2
+
+·10−1
+(↓)
+ETT M 1
+
+·10−1
+(↓)
+ETT M 2
+
+ESN
+ESN (deep)
+
+10.0±0.3
+9.7±0.2
+
+30.8±0.6
+30.5±0.3
+
+3.0±0.0
+2.0±0.0
+
+6.5±0.4
+4.2±0.2
+
+2.7±0.4
+3.0±0.5
+
+10.3±0.1
+10.1±0.1
+
+9.1±0.2
+8.9±0.1
+
+13.0±1.7
+9.6±0.5
+
+6.7±0.1
+6.6±0.0
+
+9.9±7.3
+6.0±0.6
+
+ParalESN
+ParalESN (deep)
+
+10.4±0.5
+10.3±0.3
+
+30.2±0.5
+29.4±0.3
+
+2.8±0.2
+2.6±0.4
+
+7.4±0.4
+5.2±0.5
+
+3.7±0.8
+4.5±1.0
+
+10.2±0.1
+10.2±0.2
+
+9.0±0.2
+8.8±0.1
+
+12.8±1.2
+9.7±0.9
+
+6.5±0.1
+6.5±0.0
+
+5.1±0.1
+5.0±0.0
+
+1000
+100
+
+MemCap
+
+1
+1e 01
+
+1
+6 × 10 11
+43 ×× 10
+10 1
+
+MG84
+
+1
+1e 01
+
+Lorenz25
+
+1
+1e 01
+
+1
+6 × 10 11
+43 ×× 10
+10 1
+
+NARMA10
+
+ETTh2
+
+SinMem10
+
+Lorenz50
+
+1
+1e 01
+
+ETTm1
+
+ETTm2
+
+10
+1
+
+MG
+1
+1e 01
+
+NARMA30
+
+1
+1e 01
+
+1
+1e 01
+10
+1
+1e 01
+
+ctXOR10
+
+1
+1e 01
+
+SinMem20
+Time (seconds)
+
+ctXOR5
+
+10
+1
+
+10
+1
+1e 01
+
+ETTh1
+
+ESN
+ESN (deep)
+ParalESN
+ParalESN (deep)
+
+Figure 4. Training time comparison between ParalESNs and traditional ESNs for each memory-based and forecasting benchmark.
+ParalESN and ParalESN (deep) train order of magnitude faster.
+
+6. Conclusions
+
++3.3% on StarLightCurves. Similarly, ParalESN (deep)
+outperforms ESN (deep) by +10.0% on Blink, +8.8%
+on FaultDetectionA, +2.7% on FordA, +0.7% on FordB,
+and +2.3% on StarLightCurves. On sMNIST and psMNIST, ParalESN achieves higher test accuracy by +13.4%
+and +17.1%, respectively, compared to traditional ESN.
+ParalESN (deep) provides gains of +7.7% and +13.1%
+over ESN (deep). These performance improvements come
+alongside substantial efficiency gains, with ParalESN and
+ParalESN (deep) requiring half or less of the training time,
+CO2 emissions, and energy of their counterparts. Unlike traditional RC, ParalESN is competitive with LSTMs,
+Transformers, LRU, and Mamba, while delivering computational savings of orders of magnitude.
+
+We introduced ParalESN, a novel framework for constructing high-dimensional, efficient, and parallelizable untrained RNNs based on linear diagonal recurrence. This
+work addresses fundamental limitations of traditional RC,
+including the necessity of processing data sequentially
+and the prohibitive memory footprint of high-dimensional
+reservoirs. Results across various time series and 1-D
+pixel-level classification benchmarks demonstrate that ParalESN is, on average, more accurate and faster than traditional RC, while remaining competitive with fully-trainable
+sequence models at a fraction of their computational cost.
+
+7
+
+ParalESN: Enabling parallel information processing in Reservoir Computing
+
+Table 3. Test set results on time series classification tasks, assuming 1024 recurrent neurons for each model. The best result is
+highlighted in bold.
+M ODEL
+
+B LINK
+
+FAULT D ETECTIONA
+
+F ORDA
+
+F ORD B
+
+S TAR L IGHT C URVES
+
+ESN
+ESN ( DEEP )
+
+68.9±5.5
+86.5±1.8
+
+71.3±0.8
+86.0±0.6
+
+75.8±0.9
+90.1±0.8
+
+62.7±0.8
+76.1±0.8
+
+92.1±0.7
+93.8±0.4
+
+PARAL ESN
+PARAL ESN ( DEEP )
+
+96.8±1.1
+96.5±0.4
+
+75.0±0.4
+94.8±0.9
+
+83.4±0.7
+92.8±0.5
+
+68.4±1.0
+76.8±1.6
+
+95.4±0.4
+96.1±0.3
+
+Table 4. Test set results sMNIST and psMNIST tasks. The top-two results are underlined, the best result overall is highlighted in bold.
+S MNIST
+
+M ODEL
+
+PARAMS .
+
+↑ ACCURACY
+
+↓ T IME ( MIN .)
+
+↓ E MISSIONS ( KG )
+
+↓ E NERGY ( K W H )
+
+LSTM
+T RANSFORMER
+LRU
+M AMBA
+ESN
+ESN ( DEEP )
+
+≈ 160k
+≈ 160k
+≈ 160k
+≈ 200k
+≈ 160k
+≈ 160k
+
+97.5±1.4
+98.4±0.1
+98.5±0.2
+98.4±0.1
+82.5±7
+91.4±1.1
+
+80.8±6.8
+141.0±14.1
+29.1±1.85
+22.87±4.48
+4.3±0.1
+8.8±0.1
+
+0.34±0.14
+0.60±0.28
+0.18±0.02
+0.19±0.02
+0.02±0.00
+0.04±0.00
+
+1.02±0.42
+1.81±0.86
+0.57±0.05
+0.57±0.06
+0.07±0.00
+0.13±0.00
+
+PARAL ESN
+PARAL ESN ( DEEP )
+
+≈ 160k
+≈ 160k
+
+96.2±1.3
+97.2±0.2
+
+2.7±0.7
+3.3±0.5
+
+0.01±0.00
+0.02±0.00
+
+0.04±0.1
+0.05±0.00
+
+M ODEL
+
+PARAMS .
+
+↑ ACCURACY
+
+↓ T IME ( MIN .)
+
+↓ E MISSIONS ( KG )
+
+↓ E NERGY ( K W H )
+
+LSTM
+T RANSFORMER
+LRU
+M AMBA
+ESN
+ESN ( DEEP )
+
+≈ 160k
+≈ 160k
+≈ 160k
+≈ 200k
+≈ 160k
+≈ 160k
+
+92.8±0.5
+97.4±0.2
+97.8±0.1
+92.6±0.1
+78.2±1.6
+82.1±3.7
+
+89.3±4.2
+156.8±2.7
+33.8±3.42
+43.25±5.02
+4.3±0.1
+7.3±0.1
+
+0.47±0.04
+0.65±0.24
+0.21±0.03
+0.24±0.03
+0.02±0.00
+0.04±0.00
+
+1.41±0.11
+1.98±0.73
+0.63±0.09
+0.73±0.08
+0.06±0.00
+0.11±0.00
+
+PARAL ESN
+PARAL ESN ( DEEP )
+
+≈ 160k
+≈ 160k
+
+96.9±0.1
+95.2±0.1
+
+2.8±0.3
+3.1±0.2
+
+0.01±0.00
+0.02±0.00
+
+0.04±0.00
+0.05±0.00
+
+Normalized performance score
+
+PS MNIST
+
+high perf.
+& high eff.
+LRU ParalESN
+
+1.0
+Transformer
+0.8
+
+LSTM
+
+0.6
+0.4
+0.2
+0.0
+
+Figure 5. Trade-off between performance (test accuracy) and efficiency (training time) for ParalESN, traditional RC, and fully-trainable sequence models, for the
+sMNIST and psMNIST benchmarks. For each model
+and benchmark, we compute the percentage improvement over the ESN baseline. The normalized scores are
+then obtained via min-max normalization of these average improvements, mapping them to a [0, 1] scale with
+0 representing to the worst-performing model and 1 the
+best-performing one. ParalESN is competitive with fullytrainable models while delivering substantial efficiency
+improvements.
+
+Mamba
+ParalESN (deep)
+
+ESN (deep)
+low perf.
+& low eff.
+0.0
+
+0.2
+0.4
+0.6
+0.8
+Normalized efficiency score
+
+ESN
+1.0
+
+8
+
+
